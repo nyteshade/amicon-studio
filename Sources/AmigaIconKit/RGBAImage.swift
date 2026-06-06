@@ -39,10 +39,22 @@ public struct RGBAImage: Equatable {
         pixels[i] = r; pixels[i + 1] = g; pixels[i + 2] = b; pixels[i + 3] = a
     }
 
-    /// Nearest-neighbour resize. Amiga icons are small; quality here is not
-    /// critical, and nearest-neighbour preserves hard edges and palettes well.
-    public func resized(to newWidth: Int, to newHeight: Int) -> RGBAImage {
+    /// Resamples to a new size with the chosen `filter`:
+    ///   - `.nearest`: crisp, hard-edged — best for pixel art and upscaling.
+    ///   - `.smooth`:  alpha-weighted area averaging — best for shrinking photos
+    ///     to icon size (avoids the aliasing nearest-neighbour produces). It
+    ///     degrades to nearest-style sampling when enlarging, which keeps small
+    ///     art crisp.
+    public func resized(to newWidth: Int, to newHeight: Int,
+                        filter: ResampleFilter = .nearest) -> RGBAImage {
         guard newWidth != width || newHeight != height else { return self }
+        switch filter {
+        case .nearest: return nearestResized(newWidth, newHeight)
+        case .smooth:  return areaResampled(newWidth, newHeight)
+        }
+    }
+
+    private func nearestResized(_ newWidth: Int, _ newHeight: Int) -> RGBAImage {
         var out = RGBAImage(width: newWidth, height: newHeight)
         for y in 0..<newHeight {
             let sy = min(height - 1, y * height / newHeight)
@@ -54,7 +66,47 @@ public struct RGBAImage: Equatable {
         }
         return out
     }
+
+    /// Area-averaging resample. Each destination pixel averages the source
+    /// rectangle it covers, weighting colour by alpha so colours under
+    /// transparent pixels don't bleed dark halos into the result.
+    public func areaResampled(_ newWidth: Int, _ newHeight: Int) -> RGBAImage {
+        var out = RGBAImage(width: newWidth, height: newHeight)
+        let sx = Double(width) / Double(newWidth)
+        let sy = Double(height) / Double(newHeight)
+        for ty in 0..<newHeight {
+            let y0 = Int((Double(ty) * sy).rounded(.down))
+            let y1 = min(height, max(y0 + 1, Int((Double(ty + 1) * sy).rounded(.up))))
+            for tx in 0..<newWidth {
+                let x0 = Int((Double(tx) * sx).rounded(.down))
+                let x1 = min(width, max(x0 + 1, Int((Double(tx + 1) * sx).rounded(.up))))
+                var ar = 0.0, ag = 0.0, ab = 0.0, asum = 0.0, n = 0.0
+                for yy in y0..<y1 {
+                    for xx in x0..<x1 {
+                        let p = pixel(xx, yy)
+                        let a = Double(p.a) / 255.0
+                        ar += Double(p.r) * a; ag += Double(p.g) * a; ab += Double(p.b) * a
+                        asum += a; n += 1
+                    }
+                }
+                if n == 0 { continue }
+                if asum > 0 {
+                    out.setPixel(tx, ty, u8(ar / asum), u8(ag / asum), u8(ab / asum), u8(asum / n * 255))
+                } // else leave fully transparent
+            }
+        }
+        return out
+    }
 }
+
+/// How `RGBAImage` scales source artwork into the icon canvas.
+public enum ResampleFilter: String, Codable, CaseIterable, Equatable {
+    case nearest // crisp; best for pixel art / upscaling
+    case smooth  // area-average; best for shrinking photos
+}
+
+@inline(__always)
+func u8(_ v: Double) -> UInt8 { UInt8(min(255, max(0, Int(v.rounded())))) }
 
 public extension RGBAImage {
     /// Produces a "selected"/clicked variant by adding a soft coloured **glow**

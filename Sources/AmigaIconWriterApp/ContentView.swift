@@ -223,6 +223,17 @@ struct OutputSettingsView: View {
                             Text(wb.name).tag(wb.id)
                         }
                     }
+                    Toggle("Dither (Floyd–Steinberg)", isOn: Binding(
+                        get: { settings.planarDither == .floydSteinberg },
+                        set: { settings.planarDither = $0 ? .floydSteinberg : .none }))
+                }
+
+                Group {
+                    Text("Scaling").font(.caption.weight(.semibold))
+                    Picker("Resample", selection: $settings.resample) {
+                        Text("Smooth (photos)").tag(ResampleFilter.smooth)
+                        Text("Nearest (pixel art)").tag(ResampleFilter.nearest)
+                    }
                 }
 
                 Toggle("NewIcons (experimental)", isOn: $settings.writeNewIcons)

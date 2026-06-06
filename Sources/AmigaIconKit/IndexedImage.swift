@@ -10,6 +10,12 @@ public struct RGB: Equatable, Hashable {
     public init(_ r: UInt8, _ g: UInt8, _ b: UInt8) { self.r = r; self.g = g; self.b = b }
 }
 
+/// Error-diffusion mode used when reducing an image to a fixed palette.
+public enum DitherMode: String, Codable, CaseIterable, Equatable {
+    case none           // snap each pixel to its nearest pen
+    case floydSteinberg // diffuse quantisation error to neighbours
+}
+
 /// A palette-indexed image: one byte (index into `palette`) per pixel, plus an
 /// optional transparent colour index.
 public struct IndexedImage: Equatable {
@@ -112,10 +118,24 @@ public enum ColorQuantizer {
 
     /// Maps an image onto a *fixed* palette (used by the classic planar writer,
     /// which must use the Workbench screen palette rather than its own).
+    /// `dither` controls error diffusion: `.none` snaps each pixel to its nearest
+    /// pen, `.floydSteinberg` diffuses the quantisation error to neighbours,
+    /// which greatly improves how photos read at 4–16 pens.
     public static func map(_ image: RGBAImage,
                            to palette: [RGB],
                            backgroundIndex: Int = 0,
-                           alphaThreshold: UInt8 = 128) -> IndexedImage {
+                           alphaThreshold: UInt8 = 128,
+                           dither: DitherMode = .none) -> IndexedImage {
+        switch dither {
+        case .none:
+            return mapNearest(image, to: palette, backgroundIndex: backgroundIndex, alphaThreshold: alphaThreshold)
+        case .floydSteinberg:
+            return mapFloydSteinberg(image, to: palette, backgroundIndex: backgroundIndex, alphaThreshold: alphaThreshold)
+        }
+    }
+
+    private static func mapNearest(_ image: RGBAImage, to palette: [RGB],
+                                   backgroundIndex: Int, alphaThreshold: UInt8) -> IndexedImage {
         let w = image.width, h = image.height
         var indices = [Int](repeating: 0, count: w * h)
         var cache: [RGB: Int] = [:]
@@ -127,6 +147,45 @@ public enum ColorQuantizer {
             let c = RGB(image.pixels[i * 4], image.pixels[i * 4 + 1], image.pixels[i * 4 + 2])
             if let hit = cache[c] { indices[i] = hit }
             else { let idx = nearest(c, in: palette); cache[c] = idx; indices[i] = idx }
+        }
+        return IndexedImage(width: w, height: h, indices: indices,
+                            palette: palette, transparentIndex: nil)
+    }
+
+    private static func mapFloydSteinberg(_ image: RGBAImage, to palette: [RGB],
+                                          backgroundIndex: Int, alphaThreshold: UInt8) -> IndexedImage {
+        let w = image.width, h = image.height
+        var indices = [Int](repeating: 0, count: w * h)
+        // Floating RGB working buffer that accumulates diffused error.
+        var buf = [Double](repeating: 0, count: w * h * 3)
+        for i in 0..<(w * h) {
+            buf[i * 3] = Double(image.pixels[i * 4])
+            buf[i * 3 + 1] = Double(image.pixels[i * 4 + 1])
+            buf[i * 3 + 2] = Double(image.pixels[i * 4 + 2])
+        }
+        // Push the quantisation error into a still-unprocessed, opaque neighbour.
+        func diffuse(_ nx: Int, _ ny: Int, _ er: Double, _ eg: Double, _ eb: Double, _ f: Double) {
+            guard nx >= 0, nx < w, ny >= 0, ny < h else { return }
+            let j = ny * w + nx
+            guard image.pixels[j * 4 + 3] >= alphaThreshold else { return }
+            buf[j * 3] += er * f; buf[j * 3 + 1] += eg * f; buf[j * 3 + 2] += eb * f
+        }
+        for y in 0..<h {
+            for x in 0..<w {
+                let i = y * w + x
+                if image.pixels[i * 4 + 3] < alphaThreshold { indices[i] = backgroundIndex; continue }
+                let c = RGB(u8(buf[i * 3]), u8(buf[i * 3 + 1]), u8(buf[i * 3 + 2]))
+                let idx = nearest(c, in: palette)
+                indices[i] = idx
+                let p = palette[idx]
+                let er = buf[i * 3] - Double(p.r)
+                let eg = buf[i * 3 + 1] - Double(p.g)
+                let eb = buf[i * 3 + 2] - Double(p.b)
+                diffuse(x + 1, y,     er, eg, eb, 7.0 / 16)
+                diffuse(x - 1, y + 1, er, eg, eb, 3.0 / 16)
+                diffuse(x,     y + 1, er, eg, eb, 5.0 / 16)
+                diffuse(x + 1, y + 1, er, eg, eb, 1.0 / 16)
+            }
         }
         return IndexedImage(width: w, height: h, indices: indices,
                             palette: palette, transparentIndex: nil)
@@ -146,7 +205,8 @@ public enum ColorQuantizer {
                                     reserved: [RGB],
                                     totalColors: Int,
                                     backgroundIndex: Int = 0,
-                                    alphaThreshold: UInt8 = 128) -> IndexedImage {
+                                    alphaThreshold: UInt8 = 128,
+                                    dither: DitherMode = .none) -> IndexedImage {
         let freeBudget = max(0, totalColors - reserved.count)
         var freeColors: [RGB] = []
         if freeBudget > 0 {
@@ -159,7 +219,7 @@ public enum ColorQuantizer {
             if !opaque.isEmpty { freeColors = medianCut(opaque, maxColors: freeBudget) }
         }
         return map(image, to: reserved + freeColors,
-                   backgroundIndex: backgroundIndex, alphaThreshold: alphaThreshold)
+                   backgroundIndex: backgroundIndex, alphaThreshold: alphaThreshold, dither: dither)
     }
 
     // MARK: - Median cut

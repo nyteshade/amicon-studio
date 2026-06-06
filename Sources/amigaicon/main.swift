@@ -48,6 +48,10 @@ GLOW (clicked state, when --selected is not given):
   --glow-radius <n>      Glow thickness in pixels (default 3)
   --glow-color <hex>     RRGGBB (default FF8B00)
 
+QUALITY (colour reduction):
+  --resample <m>         Scaling filter: smooth | nearest  (default smooth)
+  --dither <m>           Planar dithering: fs | none       (default fs)
+
 OTHER:
   --newicons             Also embed an (experimental) NewIcons tool-type image
   -h, --help             Show this help
@@ -92,6 +96,12 @@ while !args.isEmpty {
     case "--color-content": options.colorContentSize = Int(nextValue(arg)) ?? options.colorContentSize
     case "--max-colors": options.colorMaxColors = max(2, min(256, Int(nextValue(arg)) ?? 256))
     case "--no-compress": options.compressColorIcon = false
+    case "--resample":
+        let v = nextValue(arg).lowercased()
+        options.resampleFilter = (v == "nearest" || v == "none") ? .nearest : .smooth
+    case "--dither":
+        let v = nextValue(arg).lowercased()
+        options.planarDither = (v == "none" || v == "off") ? .none : .floydSteinberg
     case "--no-glow": options.autoGlow = false
     case "--glow-radius": options.glowRadius = Int(nextValue(arg)) ?? options.glowRadius
     case "--glow-color":

@@ -40,6 +40,14 @@ public struct IconOptions {
     // --- NewIcons (experimental; off by default — see NewIcons.swift) ---
     public var writeNewIcons: Bool = false
 
+    // --- Image quality ---
+    /// Filter used when scaling source art into the icon canvas (`.smooth`
+    /// area-averaging is best for shrinking photos; `.nearest` for pixel art).
+    public var resampleFilter: ResampleFilter = .smooth
+    /// Error-diffusion dithering for the low-colour planar reduction. On by
+    /// default because it dramatically improves how photos read at 4–16 pens.
+    public var planarDither: DitherMode = .floydSteinberg
+
     public init() {}
 }
 
@@ -66,9 +74,11 @@ public enum IconWriter {
         var planarSelectedImg: PlanarImage?
         if let sel = selected {
             let rgba = sel.centered(inCanvas: options.planarCanvasSize,
-                                    contentSize: options.planarContentSize)
+                                    contentSize: options.planarContentSize,
+                                    filter: options.resampleFilter)
             let mapped = ColorQuantizer.mapReserving(rgba, reserved: wb.systemPens,
-                                                      totalColors: wb.totalColors)
+                                                      totalColors: wb.totalColors,
+                                                      dither: options.planarDither)
             planarSelectedImg = PlanarImage(mapped, depth: planarDepth)
         }
 
@@ -76,13 +86,15 @@ public enum IconWriter {
         var colorIcon: ColorIcon?
         if options.writeColorIcon {
             let normRGBA = normal.centered(inCanvas: options.colorCanvasSize,
-                                           contentSize: options.colorContentSize)
+                                           contentSize: options.colorContentSize,
+                                           filter: options.resampleFilter)
             let normIndexed = ColorQuantizer.quantize(normRGBA, maxColors: options.colorMaxColors)
 
             let selRGBA: RGBAImage?
             if let sel = selected {
                 selRGBA = sel.centered(inCanvas: options.colorCanvasSize,
-                                       contentSize: options.colorContentSize)
+                                       contentSize: options.colorContentSize,
+                                       filter: options.resampleFilter)
             } else if options.autoGlow {
                 // Glow may not exceed the margin, or it would be clipped.
                 let margin = (options.colorCanvasSize - options.colorContentSize) / 2
@@ -101,7 +113,8 @@ public enum IconWriter {
         var toolTypes = options.toolTypes
         if options.writeNewIcons {
             let normIndexed = ColorQuantizer.quantize(
-                normal.centered(inCanvas: options.colorCanvasSize, contentSize: options.colorContentSize),
+                normal.centered(inCanvas: options.colorCanvasSize, contentSize: options.colorContentSize,
+                                filter: options.resampleFilter),
                 maxColors: 256)
             let newIconLines = NewIcons.encode(normal: normIndexed, selected: nil)
             toolTypes = newIconLines + toolTypes
@@ -120,9 +133,11 @@ public enum IconWriter {
     /// artwork reduced to) without re-deriving the pipeline.
     public static func planarIndexed(for normal: RGBAImage, options: IconOptions) -> IndexedImage {
         let composed = normal.centered(inCanvas: options.planarCanvasSize,
-                                       contentSize: options.planarContentSize)
+                                       contentSize: options.planarContentSize,
+                                       filter: options.resampleFilter)
         let wb = options.planarPalette
-        return ColorQuantizer.mapReserving(composed, reserved: wb.systemPens, totalColors: wb.totalColors)
+        return ColorQuantizer.mapReserving(composed, reserved: wb.systemPens, totalColors: wb.totalColors,
+                                           dither: options.planarDither)
     }
 
     // MARK: - DiskObject serialisation

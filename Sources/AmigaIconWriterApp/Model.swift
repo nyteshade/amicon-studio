@@ -26,6 +26,10 @@ struct RenderSettings: Codable, Equatable {
     /// A `WorkbenchPalette` preset id (see `WorkbenchPalette.presets`).
     var paletteName = WorkbenchPalette.workbench2_4.id
 
+    // Image quality
+    var resample: ResampleFilter = .smooth
+    var planarDither: DitherMode = .floydSteinberg
+
     // Misc
     var writeNewIcons = false // experimental
     var defaultTool = ""
@@ -45,6 +49,8 @@ struct RenderSettings: Codable, Equatable {
         o.planarCanvasSize = planarCanvas
         o.planarContentSize = planarContent
         o.planarPalette = WorkbenchPalette.resolve(paletteName)
+        o.resampleFilter = resample
+        o.planarDither = planarDither
         o.writeNewIcons = writeNewIcons
         o.defaultTool = defaultTool
         o.toolTypes = toolTypes

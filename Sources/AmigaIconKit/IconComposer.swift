@@ -8,12 +8,13 @@ public extension RGBAImage {
     /// This is the standard GlowIcon layout: artwork at, say, 48×48 sitting in a
     /// 54×54 canvas, leaving a 3px margin all round for the selected-state glow
     /// to bloom into without being clipped.
-    func centered(inCanvas canvasSize: Int, contentSize: Int) -> RGBAImage {
+    func centered(inCanvas canvasSize: Int, contentSize: Int,
+                  filter: ResampleFilter = .smooth) -> RGBAImage {
         let content = min(contentSize, canvasSize)
         let scale = min(Double(content) / Double(width), Double(content) / Double(height))
         let nw = max(1, Int((Double(width) * scale).rounded()))
         let nh = max(1, Int((Double(height) * scale).rounded()))
-        let scaled = resized(to: nw, to: nh)
+        let scaled = resized(to: nw, to: nh, filter: filter)
 
         var out = RGBAImage(width: canvasSize, height: canvasSize)
         let ox = (canvasSize - nw) / 2
