@@ -89,6 +89,53 @@ struct IconProject: Codable, Equatable {
     var items: [IconItem] = []
 }
 
+// MARK: - Forward-compatible decoding
+//
+// Encoding stays synthesized (new files carry every key), but decoding is made
+// tolerant: any key absent from a project saved by an older build falls back to
+// its default. Without this, adding a settings field would make existing
+// `.amigaicons` documents fail to open. Each stored property is assigned, so the
+// compiler flags a forgotten field.
+
+extension RenderSettings {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = RenderSettings()
+        iconType       = try c.decodeIfPresent(Int.self, forKey: .iconType) ?? d.iconType
+        writeColorIcon = try c.decodeIfPresent(Bool.self, forKey: .writeColorIcon) ?? d.writeColorIcon
+        colorCanvas    = try c.decodeIfPresent(Int.self, forKey: .colorCanvas) ?? d.colorCanvas
+        colorContent   = try c.decodeIfPresent(Int.self, forKey: .colorContent) ?? d.colorContent
+        maxColors      = try c.decodeIfPresent(Int.self, forKey: .maxColors) ?? d.maxColors
+        compress       = try c.decodeIfPresent(Bool.self, forKey: .compress) ?? d.compress
+        preserveAspect = try c.decodeIfPresent(Bool.self, forKey: .preserveAspect) ?? d.preserveAspect
+        autoGlow       = try c.decodeIfPresent(Bool.self, forKey: .autoGlow) ?? d.autoGlow
+        glowRadius     = try c.decodeIfPresent(Int.self, forKey: .glowRadius) ?? d.glowRadius
+        glowColorHex   = try c.decodeIfPresent(String.self, forKey: .glowColorHex) ?? d.glowColorHex
+        planarCanvas   = try c.decodeIfPresent(Int.self, forKey: .planarCanvas) ?? d.planarCanvas
+        planarContent  = try c.decodeIfPresent(Int.self, forKey: .planarContent) ?? d.planarContent
+        palette        = try c.decodeIfPresent(WorkbenchPalette.self, forKey: .palette) ?? d.palette
+        resample       = try c.decodeIfPresent(ResampleFilter.self, forKey: .resample) ?? d.resample
+        planarDither   = try c.decodeIfPresent(DitherMode.self, forKey: .planarDither) ?? d.planarDither
+        writeNewIcons  = try c.decodeIfPresent(Bool.self, forKey: .writeNewIcons) ?? d.writeNewIcons
+        defaultTool    = try c.decodeIfPresent(String.self, forKey: .defaultTool) ?? d.defaultTool
+        toolTypes      = try c.decodeIfPresent([String].self, forKey: .toolTypes) ?? d.toolTypes
+        drawer         = try c.decodeIfPresent(DrawerInfo.self, forKey: .drawer) ?? d.drawer
+    }
+}
+
+extension IconItem {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = IconItem()
+        id         = try c.decodeIfPresent(UUID.self, forKey: .id) ?? d.id
+        name       = try c.decodeIfPresent(String.self, forKey: .name) ?? d.name
+        normalPNG  = try c.decodeIfPresent(Data.self, forKey: .normalPNG)
+        clickedPNG = try c.decodeIfPresent(Data.self, forKey: .clickedPNG)
+        effects    = try c.decodeIfPresent([EffectInstance].self, forKey: .effects) ?? d.effects
+        settings   = try c.decodeIfPresent(RenderSettings.self, forKey: .settings) ?? d.settings
+    }
+}
+
 extension RGB {
     init?(hex: String) {
         let h = hex.hasPrefix("#") ? String(hex.dropFirst()) : hex
