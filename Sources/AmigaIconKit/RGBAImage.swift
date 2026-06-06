@@ -159,6 +159,50 @@ public extension RGBAImage {
         return shadow
     }
 
+    /// Like `shadowLayer` but with a soft, feathered edge: the offset silhouette
+    /// is solid at `alpha`, fading to 0 over `blur` pixels outside it (a distance
+    /// falloff). `blur <= 0` is the hard `shadowLayer`.
+    func softShadowLayer(dx: Int, dy: Int, color: (r: UInt8, g: UInt8, b: UInt8),
+                         alpha: UInt8, blur: Int, alphaThreshold: UInt8 = 128) -> RGBAImage {
+        guard alpha > 0 else { return RGBAImage(width: width, height: height) }
+        guard blur > 0 else {
+            return shadowLayer(dx: dx, dy: dy, color: color, alpha: alpha, alphaThreshold: alphaThreshold)
+        }
+        let w = width, h = height
+        let big = w + h + 1
+        var dist = [Int](repeating: big, count: w * h)
+        for y in 0..<h {
+            for x in 0..<w {
+                let sx = x - dx, sy = y - dy
+                if sx >= 0, sx < w, sy >= 0, sy < h, pixel(sx, sy).a >= alphaThreshold {
+                    dist[y * w + x] = 0
+                }
+            }
+        }
+        for y in 0..<h { for x in 0..<w {
+            let i = y * w + x
+            if x > 0 { dist[i] = min(dist[i], dist[i - 1] + 1) }
+            if y > 0 { dist[i] = min(dist[i], dist[i - w] + 1) }
+        } }
+        for y in stride(from: h - 1, through: 0, by: -1) { for x in stride(from: w - 1, through: 0, by: -1) {
+            let i = y * w + x
+            if x < w - 1 { dist[i] = min(dist[i], dist[i + 1] + 1) }
+            if y < h - 1 { dist[i] = min(dist[i], dist[i + w] + 1) }
+        } }
+        var out = RGBAImage(width: w, height: h)
+        for y in 0..<h {
+            for x in 0..<w {
+                let d = dist[y * w + x]
+                let a: Double
+                if d == 0 { a = Double(alpha) }
+                else if d <= blur { a = Double(alpha) * Double(blur - d + 1) / Double(blur + 1) }
+                else { continue }
+                out.setPixel(x, y, color.r, color.g, color.b, u8(a))
+            }
+        }
+        return out
+    }
+
     /// Returns the image with an **outer** drop shadow behind it (silhouette
     /// offset by `(dx, dy)`, art composited back on top). Needs that much
     /// transparent margin on the offset side or the shadow is clipped.

@@ -80,10 +80,12 @@ public struct Shadow: Equatable, Codable, Identifiable {
     public var dy: Int
     public var color: RGB
     public var alpha: UInt8
+    /// Feathered edge width in pixels for **outer** shadows (0 = hard edge).
+    public var blur: Int
 
     public init(kind: Kind = .outer, dx: Int = 2, dy: Int = 2,
-                color: RGB = RGB(0, 0, 0), alpha: UInt8 = 128) {
-        self.kind = kind; self.dx = dx; self.dy = dy; self.color = color; self.alpha = alpha
+                color: RGB = RGB(0, 0, 0), alpha: UInt8 = 128, blur: Int = 0) {
+        self.kind = kind; self.dx = dx; self.dy = dy; self.color = color; self.alpha = alpha; self.blur = blur
     }
 }
 
@@ -201,8 +203,9 @@ public enum IconWriter {
             var bg = RGBAImage(width: img.width, height: img.height)
             for s in outer {
                 let dx = clamp(s.dx, to: margin), dy = clamp(s.dy, to: margin)
-                let layer = img.shadowLayer(dx: dx, dy: dy,
-                                            color: (s.color.r, s.color.g, s.color.b), alpha: s.alpha)
+                let layer = img.softShadowLayer(dx: dx, dy: dy,
+                                                color: (s.color.r, s.color.g, s.color.b),
+                                                alpha: s.alpha, blur: s.blur)
                 bg = bg.blending(layer, atX: 0, atY: 0)
             }
             out = bg.blending(out, atX: 0, atY: 0) // art (+ inner later) over the shadows

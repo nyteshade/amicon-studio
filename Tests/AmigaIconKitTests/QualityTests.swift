@@ -170,6 +170,16 @@ final class QualityTests: XCTestCase {
         XCTAssertEqual(s.pixel(0, 0).a, 0)   // outside the shape transparent
     }
 
+    func testSoftShadowFeathersEdge() {
+        var img = RGBAImage(width: 8, height: 8)
+        img.setPixel(4, 4, 255, 255, 255, 255)
+        let layer = img.softShadowLayer(dx: 0, dy: 0, color: (0, 0, 0), alpha: 200, blur: 2)
+        XCTAssertEqual(layer.pixel(4, 4).a, 200)            // solid inside the silhouette
+        let near = layer.pixel(5, 4).a                       // 1px out → partial
+        XCTAssertTrue(near > 0 && near < 200)
+        XCTAssertEqual(layer.pixel(7, 4).a, 0)               // beyond blur → nothing
+    }
+
     /// Two outer shadows via the build options both end up in the icon (their
     /// colour appears), and they're cast from the same silhouette.
     func testMultipleOuterShadowsInBuild() throws {
