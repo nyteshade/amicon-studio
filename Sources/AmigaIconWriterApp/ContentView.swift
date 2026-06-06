@@ -32,6 +32,8 @@ struct ContentView: View {
                 Button(action: importInfo) { Label("Import .info", systemImage: "square.and.arrow.down") }
                 Button(action: exportSelected) { Label("Export .info", systemImage: "square.and.arrow.up") }
                     .disabled(selectedItemBinding == nil)
+                Button(action: exportPNG) { Label("Export PNG", systemImage: "photo") }
+                    .disabled(selectedItemBinding == nil)
                 Button(action: exportAll) { Label("Export All", systemImage: "square.and.arrow.up.on.square") }
                     .disabled(document.project.items.isEmpty)
             }
@@ -124,6 +126,15 @@ struct ContentView: View {
         if panel.runModal() == .OK, let url = panel.url {
             try? data.write(to: url)
         }
+    }
+
+    private func exportPNG() {
+        guard let item = selectedItemBinding?.wrappedValue,
+              let png = IconRenderer.compositePNG(for: item, clicked: false) else { return }
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = sanitized(item.name) + ".png"
+        panel.allowedContentTypes = [.png]
+        if panel.runModal() == .OK, let url = panel.url { try? png.write(to: url) }
     }
 
     private func exportAll() {

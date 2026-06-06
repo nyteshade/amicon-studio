@@ -102,6 +102,16 @@ enum IconRenderer {
         return Data(bytes)
     }
 
+    /// The fully composited icon image (effects + layers + outline/shadows +
+    /// reduction) for a state, as PNG — for "Export PNG". Built through the real
+    /// pipeline then read back, so it matches what the icon actually shows.
+    static func compositePNG(for item: IconItem, clicked: Bool) -> Data? {
+        guard let data = infoData(for: item),
+              let decoded = try? IconDecoder.decode([UInt8](data)) else { return nil }
+        let img = clicked ? decoded.renderedSelected() : decoded.renderedNormal()
+        return img?.pngData()
+    }
+
     /// Effects that apply to a given state: `.both` plus that state's own.
     private static func effects(_ all: [EffectInstance], for state: EffectTarget) -> [EffectInstance] {
         all.filter { $0.target == .both || $0.target == state }
