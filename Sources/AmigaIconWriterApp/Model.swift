@@ -35,6 +35,9 @@ struct RenderSettings: Codable, Equatable {
     var writeNewIcons = false // experimental
     var defaultTool = ""
     var toolTypes: [String] = []
+    /// Drawer window record (disk/drawer icons). When nil, one is auto-generated
+    /// for drawer/disk types on export; preserved as-is when importing.
+    var drawer: DrawerInfo? = nil
 
     func makeOptions() -> IconOptions {
         var o = IconOptions()
@@ -55,6 +58,11 @@ struct RenderSettings: Codable, Equatable {
         o.writeNewIcons = writeNewIcons
         o.defaultTool = defaultTool.trimmingCharacters(in: .whitespaces)
         o.toolTypes = toolTypes.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        if let drawer {
+            o.drawerData = drawer
+        } else if o.type == .drawer || o.type == .disk {
+            o.drawerData = DrawerInfo() // sensible default window for drawers
+        }
         return o
     }
 }

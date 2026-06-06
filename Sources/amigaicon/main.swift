@@ -150,6 +150,10 @@ if let sp = selectedPath {
     selected = s
 }
 
+if options.type == .drawer || options.type == .disk {
+    options.drawerData = DrawerInfo() // drawers/disks carry a window record
+}
+
 let bytes: [UInt8]
 do {
     bytes = try IconWriter.build(normal: normal, selected: selected, options: options)

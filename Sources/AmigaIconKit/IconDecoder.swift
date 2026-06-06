@@ -49,6 +49,8 @@ public enum IconDecoder {
         public var gadgetHeight: Int
         public var defaultTool: String?
         public var toolTypes: [String]
+        /// Window record for disk/drawer icons, if present.
+        public var drawer: DrawerInfo?
         public var planarNormal: PlanarImageData
         public var planarSelected: PlanarImageData?
         /// Decoded GlowIcon normal/selected states (each carries its own palette
@@ -96,9 +98,9 @@ public enum IconDecoder {
         _ = try r.u32()                      // do_ToolWindow
         _ = try r.i32()                      // do_StackSize
 
-        // `IconWriter` never emits DrawerData, but tolerate a real one (56 bytes)
-        // from icons produced elsewhere so we stay at the right offset.
-        if drawerDataPtr != 0 { try r.skip(56) }
+        // DrawerData (disk/drawer icons): a 56-byte record before the images.
+        var drawer: DrawerInfo?
+        if drawerDataPtr != 0 { drawer = try readDrawerData(&r) }
 
         // ---- Images ----------------------------------------------------
         guard gadgetRender != 0 else { throw DecodeError.missingGadgetImage }
@@ -134,6 +136,7 @@ public enum IconDecoder {
                            gadgetHeight: gHeight,
                            defaultTool: defaultTool,
                            toolTypes: toolTypes,
+                           drawer: drawer,
                            planarNormal: planarNormal,
                            planarSelected: planarSelected,
                            colorIconNormal: colorNormal,
@@ -258,6 +261,26 @@ public enum IconDecoder {
                             transparentIndex: hasTransparency ? transparentColor : nil)
     }
 
+    // MARK: - DrawerData
+
+    private static func readDrawerData(_ r: inout BinaryReader) throws -> DrawerInfo {
+        let left = try r.i16(), top = try r.i16(), width = try r.i16(), height = try r.i16()
+        _ = try r.u8(); _ = try r.u8()        // DetailPen, BlockPen
+        _ = try r.u32()                        // IDCMPFlags
+        _ = try r.u32()                        // Flags
+        _ = try r.u32()                        // FirstGadget
+        _ = try r.u32()                        // CheckMark
+        _ = try r.u32()                        // Title
+        _ = try r.u32()                        // Screen
+        _ = try r.u32()                        // BitMap
+        _ = try r.i16(); _ = try r.i16()      // MinWidth, MinHeight
+        _ = try r.u16(); _ = try r.u16()      // MaxWidth, MaxHeight
+        _ = try r.u16()                        // Type
+        let cx = try r.i32(), cy = try r.i32()
+        return DrawerInfo(left: left, top: top, width: width, height: height,
+                          currentX: cx, currentY: cy)
+    }
+
     // MARK: - Strings
 
     /// Reads an Amiga sized string: 32-bit length (including the trailing NUL),
@@ -302,6 +325,9 @@ public extension IconDecoder.DecodedIcon {
                          + (colorIconSelected != nil ? " (+ selected)" : ""))
         } else {
             lines.append("glowIcon:    none")
+        }
+        if let d = drawer {
+            lines.append("drawer:      window \(d.width)×\(d.height) at (\(d.left),\(d.top))")
         }
         if let dt = defaultTool, !dt.isEmpty { lines.append("defaultTool: \(dt)") }
         if !toolTypes.isEmpty {

@@ -12,6 +12,27 @@ public enum IconType: UInt8 {
     case appIcon = 8  // WBAPPICON
 }
 
+/// The drawer window record (`struct DrawerData`, 56 bytes) carried by **disk**
+/// and **drawer** icons: it remembers the position and size of the window
+/// Workbench opens for that drawer, plus the scroll offset of its contents.
+/// Tool/project icons don't have one.
+public struct DrawerInfo: Equatable, Codable {
+    /// Window frame (Workbench screen coordinates).
+    public var left: Int16
+    public var top: Int16
+    public var width: Int16
+    public var height: Int16
+    /// Scroll offset of the drawer's contents.
+    public var currentX: Int32
+    public var currentY: Int32
+
+    public init(left: Int16 = 48, top: Int16 = 32, width: Int16 = 300, height: Int16 = 200,
+                currentX: Int32 = 0, currentY: Int32 = 0) {
+        self.left = left; self.top = top; self.width = width; self.height = height
+        self.currentX = currentX; self.currentY = currentY
+    }
+}
+
 /// The standard 4-colour Workbench palette (OS2.0/3.x default), used to render
 /// the classic planar fallback image. Classic `.info` files store no palette of
 /// their own — indices are interpreted against the live Workbench screen — so a

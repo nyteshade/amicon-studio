@@ -120,6 +120,7 @@ enum IconRenderer {
             item.settings.autoGlow = false // preserve the imported clicked state as-is
         }
         if let t = decoded.type { item.settings.iconType = Int(t.rawValue) }
+        item.settings.drawer = decoded.drawer // preserve the original window record
         item.settings.defaultTool = decoded.defaultTool ?? ""
         // Keep the user's tool types; drop any embedded NewIcons (IMn=) payload.
         item.settings.toolTypes = decoded.toolTypes.filter { !$0.hasPrefix("IM1=") && !$0.hasPrefix("IM2=") }

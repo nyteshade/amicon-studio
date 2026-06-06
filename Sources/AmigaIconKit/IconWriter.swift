@@ -9,6 +9,10 @@ public struct IconOptions {
     public var type: IconType = .project
     public var defaultTool: String = ""
     public var toolTypes: [String] = []
+    /// When set (typically for `.drawer`/`.disk` icons), a `DrawerData` window
+    /// record is written so Workbench remembers the drawer window's position
+    /// and size. `nil` for tool/project icons.
+    public var drawerData: DrawerInfo? = nil
 
     // --- Classic planar fallback (always written; OS1–3 era) ---
     /// Which Workbench pen set the planar indices are matched against. Classic
@@ -123,6 +127,7 @@ public enum IconWriter {
         return try serialize(type: options.type,
                              defaultTool: options.defaultTool,
                              toolTypes: toolTypes,
+                             drawer: options.drawerData,
                              planarNormal: planarNormalImg,
                              planarSelected: planarSelectedImg,
                              colorIcon: colorIcon)
@@ -145,6 +150,7 @@ public enum IconWriter {
     private static func serialize(type: IconType,
                                   defaultTool: String,
                                   toolTypes: [String],
+                                  drawer: DrawerInfo?,
                                   planarNormal: PlanarImage,
                                   planarSelected: PlanarImage?,
                                   colorIcon: ColorIcon?) throws -> [UInt8] {
@@ -183,9 +189,12 @@ public enum IconWriter {
         w.u32(hasToolTypes ? 1 : 0)         // do_ToolTypes
         w.i32(0)                            // do_CurrentX (NO_ICON_POSITION would be 0x80000000)
         w.i32(0)                            // do_CurrentY
-        w.u32(0)                            // do_DrawerData (none)
+        w.u32(drawer != nil ? 1 : 0)        // do_DrawerData (non-NULL: record follows)
         w.u32(0)                            // do_ToolWindow
         w.i32(0)                            // do_StackSize
+
+        // ---- DrawerData (disk/drawer icons only) -----------------------
+        if let drawer { writeDrawerData(drawer, into: &w) }
 
         // ---- Images ----------------------------------------------------
         planarNormal.write(into: &w)
@@ -206,6 +215,34 @@ public enum IconWriter {
         if let colorIcon { w.bytes(try colorIcon.encode()) }
 
         return w.data
+    }
+
+    /// Writes the 56-byte `struct DrawerData`: an embedded 48-byte `NewWindow`
+    /// (most fields are runtime pointers Workbench fills in, so written as 0)
+    /// followed by the content scroll offset.
+    private static func writeDrawerData(_ d: DrawerInfo, into w: inout BinaryWriter) {
+        // struct NewWindow (48 bytes)
+        w.i16(d.left)        // LeftEdge
+        w.i16(d.top)         // TopEdge
+        w.i16(d.width)       // Width
+        w.i16(d.height)      // Height
+        w.u8(0xFF)           // DetailPen (0xFF = use screen default)
+        w.u8(0xFF)           // BlockPen
+        w.u32(0)             // IDCMPFlags
+        w.u32(0)             // Flags
+        w.u32(0)             // FirstGadget
+        w.u32(0)             // CheckMark
+        w.u32(0)             // Title
+        w.u32(0)             // Screen
+        w.u32(0)             // BitMap
+        w.i16(0)             // MinWidth
+        w.i16(0)             // MinHeight
+        w.u16(0)             // MaxWidth
+        w.u16(0)             // MaxHeight
+        w.u16(1)             // Type (1 = WBENCHSCREEN)
+        // DrawerData tail (8 bytes)
+        w.i32(d.currentX)    // dd_CurrentX
+        w.i32(d.currentY)    // dd_CurrentY
     }
 
     /// Writes an Amiga sized string: 32-bit length (including NUL), bytes, NUL.

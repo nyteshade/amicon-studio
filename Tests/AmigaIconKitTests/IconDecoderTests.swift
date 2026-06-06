@@ -152,6 +152,31 @@ final class IconDecoderTests: XCTestCase {
         XCTAssertEqual(r.width, decoded.planarNormal.width)
     }
 
+    /// A drawer icon's DrawerData window record must round-trip, and everything
+    /// after it (images, tool types, GlowIcon) must still decode at the right
+    /// offset (DrawerData adds 56 bytes before the images).
+    func testDrawerDataRoundTrips() throws {
+        let img = RGBAImage(width: 16, height: 16, pixels: [UInt8](repeating: 180, count: 16 * 16 * 4))
+        var opts = IconOptions()
+        opts.type = .drawer
+        opts.toolTypes = ["WINDOW=open"]
+        opts.drawerData = DrawerInfo(left: 64, top: 40, width: 320, height: 256, currentX: 8, currentY: 12)
+
+        let decoded = try IconDecoder.decode(try IconWriter.build(normal: img, selected: nil, options: opts))
+        XCTAssertEqual(decoded.type, .drawer)
+        XCTAssertEqual(decoded.drawer,
+                       DrawerInfo(left: 64, top: 40, width: 320, height: 256, currentX: 8, currentY: 12))
+        XCTAssertEqual(decoded.toolTypes, ["WINDOW=open"]) // offset preserved past DrawerData
+        XCTAssertTrue(decoded.hasColorIcon)
+    }
+
+    func testNoDrawerDataForToolIcons() throws {
+        let img = RGBAImage(width: 16, height: 16, pixels: [UInt8](repeating: 180, count: 16 * 16 * 4))
+        var opts = IconOptions(); opts.type = .tool
+        let decoded = try IconDecoder.decode(try IconWriter.build(normal: img, selected: nil, options: opts))
+        XCTAssertNil(decoded.drawer)
+    }
+
     func testBadMagicThrows() {
         XCTAssertThrowsError(try IconDecoder.decode([0x00, 0x00, 0x00, 0x00, 0x00, 0x00])) { error in
             guard case IconDecoder.DecodeError.badMagic = error else {
