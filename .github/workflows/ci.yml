@@ -41,3 +41,10 @@ jobs:
         run: swift build
       - name: Test
         run: swift test
+      # Xcode's explicit-modules build is stricter than `swift build` (e.g. it
+      # rejects some cross-type file-private access). Build the app scheme the
+      # way Xcode does, for macOS, so that path is covered too.
+      - name: Xcode build (app scheme, macOS)
+        run: |
+          set -o pipefail
+          xcodebuild -scheme AmigaIconWriterApp -destination 'platform=macOS' build | tail -50
