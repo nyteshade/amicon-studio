@@ -7,6 +7,7 @@ import AmigaIconKit
 struct ContentView: View {
     @Binding var document: IconProjectDocument
     @State private var selection: UUID?
+    @StateObject private var history = UndoHistory()
 
     var body: some View {
         HStack(spacing: 0) {
@@ -27,6 +28,15 @@ struct ContentView: View {
         .frame(minWidth: 860, minHeight: 600)
         .toolbar {
             ToolbarItemGroup {
+                Button { var p = document.project; history.undo(&p); document.project = p } label: {
+                    Label("Undo", systemImage: "arrow.uturn.backward")
+                }
+                .disabled(!history.canUndo).keyboardShortcut("z", modifiers: .command)
+                Button { var p = document.project; history.redo(&p); document.project = p } label: {
+                    Label("Redo", systemImage: "arrow.uturn.forward")
+                }
+                .disabled(!history.canRedo).keyboardShortcut("z", modifiers: [.command, .shift])
+                Divider()
                 Button(action: addIcon) { Label("Add Icon", systemImage: "plus") }
                 Button(action: importImages) { Label("Import Images", systemImage: "photo.badge.plus") }
                 Button(action: importInfo) { Label("Import .info", systemImage: "square.and.arrow.down") }
@@ -38,7 +48,11 @@ struct ContentView: View {
                     .disabled(document.project.items.isEmpty)
             }
         }
-        .onAppear { if selection == nil { selection = document.project.items.first?.id } }
+        .onAppear {
+            if selection == nil { selection = document.project.items.first?.id }
+            history.sync(document.project)
+        }
+        .onChange(of: document.project) { newValue in history.sync(newValue) }
     }
 
     // MARK: - Selection plumbing
