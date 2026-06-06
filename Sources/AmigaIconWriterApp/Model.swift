@@ -14,6 +14,7 @@ struct RenderSettings: Codable, Equatable {
     var colorContent = 48
     var maxColors = 256
     var compress = true
+    var preserveAspect = false // non-square canvas hugging the artwork
 
     // Clicked-state glow
     var autoGlow = true
@@ -47,6 +48,7 @@ struct RenderSettings: Codable, Equatable {
         o.colorContentSize = colorContent
         o.colorMaxColors = maxColors
         o.compressColorIcon = compress
+        o.preserveAspectRatio = preserveAspect
         o.autoGlow = autoGlow
         o.glowRadius = glowRadius
         if let c = RGB(hex: glowColorHex) { o.glowColor = c }

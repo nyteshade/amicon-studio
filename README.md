@@ -63,6 +63,11 @@ size (`--resample smooth|nearest`), and the planar reduction uses
 **Floyd–Steinberg dithering** so photos read well at 4–16 pens
 (`--dither fs|none`). Pixel-art sources usually want `nearest` + `none`.
 
+By default the canvas is square; pass `--preserve-aspect` (or toggle it in
+*Output Settings*) to emit a **non-square** canvas that hugs the artwork's
+aspect ratio — as many classic icons do — keeping a uniform glow margin on all
+sides.
+
 > ⚠️ The exact RGB values for the WB 1.x / 2.x pens and the OS 3.2 system pens
 > are the conventional/MagicWB-compatible ones; tweak them in
 > `WorkbenchPalettes.swift` / `ClassicIcon.swift` if you target a specific

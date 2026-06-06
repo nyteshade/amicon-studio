@@ -260,6 +260,7 @@ struct OutputSettingsView: View {
                     Stepper("Artwork: \(settings.colorContent)px", value: $settings.colorContent, in: 8...256)
                     Stepper("Max colours: \(settings.maxColors)", value: $settings.maxColors, in: 2...256, step: 2)
                     Toggle("RLE compress", isOn: $settings.compress)
+                    Toggle("Preserve aspect (non-square)", isOn: $settings.preserveAspect)
                 }
 
                 Group {

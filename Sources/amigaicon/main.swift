@@ -69,6 +69,7 @@ COLORICON / GLOWICON (OS3.5+, 24-bit):
   --color-content <n>    Artwork fit size (default 48)
   --max-colors <n>       Palette cap, 2–256 (default 256)
   --no-compress          Store image/palette uncompressed (RLE is default)
+  --preserve-aspect      Non-square canvas hugging the artwork's aspect ratio
 
 GLOW (clicked state, when --selected is not given):
   --no-glow              Don't auto-generate a glowing clicked state
@@ -123,6 +124,7 @@ while !args.isEmpty {
     case "--color-content": options.colorContentSize = Int(nextValue(arg)) ?? options.colorContentSize
     case "--max-colors": options.colorMaxColors = max(2, min(256, Int(nextValue(arg)) ?? 256))
     case "--no-compress": options.compressColorIcon = false
+    case "--preserve-aspect": options.preserveAspectRatio = true
     case "--resample":
         let v = nextValue(arg).lowercased()
         options.resampleFilter = (v == "nearest" || v == "none") ? .nearest : .smooth

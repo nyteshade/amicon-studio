@@ -94,6 +94,31 @@ final class QualityTests: XCTestCase {
         XCTAssertTrue(q.indices.allSatisfy { $0 == 0 })
     }
 
+    // MARK: - Non-square canvas (preserve aspect)
+
+    /// A wide source with `preserveAspectRatio` yields a non-square canvas that
+    /// hugs the artwork; both the GlowIcon and planar images are wider than tall.
+    func testPreserveAspectProducesNonSquareCanvas() throws {
+        var img = RGBAImage(width: 64, height: 16) // 4:1
+        for y in 0..<16 { for x in 0..<64 { img.setPixel(x, y, 200, 100, 50, 255) } }
+        var opts = IconOptions()
+        opts.preserveAspectRatio = true
+        let decoded = try IconDecoder.decode(try IconWriter.build(normal: img, selected: nil, options: opts))
+        let c = decoded.colorIconNormal!
+        XCTAssertGreaterThan(c.width, c.height)
+        XCTAssertGreaterThan(decoded.planarNormal.width, decoded.planarNormal.height)
+        XCTAssertNotNil(decoded.colorIconSelected) // glow still generated on the rectangle
+    }
+
+    /// Without the option, the canvas stays square regardless of source aspect.
+    func testSquareCanvasByDefault() throws {
+        var img = RGBAImage(width: 64, height: 16)
+        for y in 0..<16 { for x in 0..<64 { img.setPixel(x, y, 200, 100, 50, 255) } }
+        let decoded = try IconDecoder.decode(try IconWriter.build(normal: img, selected: nil, options: IconOptions()))
+        let c = decoded.colorIconNormal!
+        XCTAssertEqual(c.width, c.height)
+    }
+
     /// End-to-end: a dithered planar build still round-trips through the decoder.
     func testDitheredPlanarBuildRoundTrips() throws {
         var img = RGBAImage(width: 30, height: 30)

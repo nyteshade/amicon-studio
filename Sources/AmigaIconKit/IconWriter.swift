@@ -32,6 +32,10 @@ public struct IconOptions {
     public var colorCanvasSize: Int = 54
     public var colorMaxColors: Int = 256
     public var compressColorIcon: Bool = true
+    /// Produce a **non-square** canvas that hugs the artwork's aspect ratio
+    /// (like many classic icons) instead of forcing a square canvas. The chosen
+    /// canvas/content sizes act as the maximum (longer) dimension. Off by default.
+    public var preserveAspectRatio: Bool = false
 
     // --- Selected ("clicked") state glow ---
     /// When no explicit selected image is supplied, derive the clicked state by
@@ -77,9 +81,10 @@ public enum IconWriter {
         // explicitly (classic icons usually rely on colour-complement highlight).
         var planarSelectedImg: PlanarImage?
         if let sel = selected {
-            let rgba = sel.centered(inCanvas: options.planarCanvasSize,
-                                    contentSize: options.planarContentSize,
-                                    filter: options.resampleFilter)
+            let rgba = sel.fitted(maxCanvas: options.planarCanvasSize,
+                                  maxContent: options.planarContentSize,
+                                  preserveAspect: options.preserveAspectRatio,
+                                  filter: options.resampleFilter)
             let mapped = ColorQuantizer.mapReserving(rgba, reserved: wb.systemPens,
                                                       totalColors: wb.totalColors,
                                                       dither: options.planarDither)
@@ -89,16 +94,18 @@ public enum IconWriter {
         // ---- ColorIcon / GlowIcon --------------------------------------
         var colorIcon: ColorIcon?
         if options.writeColorIcon {
-            let normRGBA = normal.centered(inCanvas: options.colorCanvasSize,
-                                           contentSize: options.colorContentSize,
-                                           filter: options.resampleFilter)
+            let normRGBA = normal.fitted(maxCanvas: options.colorCanvasSize,
+                                         maxContent: options.colorContentSize,
+                                         preserveAspect: options.preserveAspectRatio,
+                                         filter: options.resampleFilter)
             let normIndexed = ColorQuantizer.quantize(normRGBA, maxColors: options.colorMaxColors)
 
             let selRGBA: RGBAImage?
             if let sel = selected {
-                selRGBA = sel.centered(inCanvas: options.colorCanvasSize,
-                                       contentSize: options.colorContentSize,
-                                       filter: options.resampleFilter)
+                selRGBA = sel.fitted(maxCanvas: options.colorCanvasSize,
+                                     maxContent: options.colorContentSize,
+                                     preserveAspect: options.preserveAspectRatio,
+                                     filter: options.resampleFilter)
             } else if options.autoGlow {
                 // Glow may not exceed the margin, or it would be clipped.
                 let margin = (options.colorCanvasSize - options.colorContentSize) / 2
@@ -117,8 +124,8 @@ public enum IconWriter {
         var toolTypes = options.toolTypes
         if options.writeNewIcons {
             let normIndexed = ColorQuantizer.quantize(
-                normal.centered(inCanvas: options.colorCanvasSize, contentSize: options.colorContentSize,
-                                filter: options.resampleFilter),
+                normal.fitted(maxCanvas: options.colorCanvasSize, maxContent: options.colorContentSize,
+                              preserveAspect: options.preserveAspectRatio, filter: options.resampleFilter),
                 maxColors: 256)
             let newIconLines = NewIcons.encode(normal: normIndexed, selected: nil)
             toolTypes = newIconLines + toolTypes
@@ -137,9 +144,10 @@ public enum IconWriter {
     /// state. Exposed so a UI can preview the exact planar result (which pens the
     /// artwork reduced to) without re-deriving the pipeline.
     public static func planarIndexed(for normal: RGBAImage, options: IconOptions) -> IndexedImage {
-        let composed = normal.centered(inCanvas: options.planarCanvasSize,
-                                       contentSize: options.planarContentSize,
-                                       filter: options.resampleFilter)
+        let composed = normal.fitted(maxCanvas: options.planarCanvasSize,
+                                     maxContent: options.planarContentSize,
+                                     preserveAspect: options.preserveAspectRatio,
+                                     filter: options.resampleFilter)
         let wb = options.planarPalette
         return ColorQuantizer.mapReserving(composed, reserved: wb.systemPens, totalColors: wb.totalColors,
                                            dither: options.planarDither)
