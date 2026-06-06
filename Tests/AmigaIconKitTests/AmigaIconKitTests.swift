@@ -54,11 +54,11 @@ final class QuantizerTests: XCTestCase {
 }
 
 final class ColorIconStructureTests: XCTestCase {
-    func testFormIconLayout() {
+    func testFormIconLayout() throws {
         var img = RGBAImage(width: 4, height: 4)
         for y in 0..<4 { for x in 0..<4 { img.setPixel(x, y, 10, 20, 30, 255) } }
         let indexed = ColorQuantizer.quantize(img, maxColors: 16)
-        let form = ColorIcon(normal: indexed, selected: nil).encode()
+        let form = try ColorIcon(normal: indexed, selected: nil).encode()
 
         XCTAssertEqual(ascii(form, 0, 4), "FORM")
         let size = beU32(form, 4)
@@ -70,21 +70,21 @@ final class ColorIconStructureTests: XCTestCase {
         XCTAssertEqual(form[21], 3)               // Height - 1 == 3
     }
 
-    func testSelectedAddsSecondImag() {
+    func testSelectedAddsSecondImag() throws {
         let img = RGBAImage(width: 4, height: 4,
                             pixels: [UInt8](repeating: 200, count: 4 * 4 * 4))
         let n = ColorQuantizer.quantize(img, maxColors: 16)
-        let oneImag = ColorIcon(normal: n, selected: nil).encode()
-        let twoImag = ColorIcon(normal: n, selected: n).encode()
+        let oneImag = try ColorIcon(normal: n, selected: nil).encode()
+        let twoImag = try ColorIcon(normal: n, selected: n).encode()
         XCTAssertGreaterThan(twoImag.count, oneImag.count)
     }
 }
 
 final class IconWriterTests: XCTestCase {
-    func testDiskObjectMagicAndHeader() {
+    func testDiskObjectMagicAndHeader() throws {
         let img = RGBAImage(width: 32, height: 32,
                             pixels: [UInt8](repeating: 255, count: 32 * 32 * 4))
-        let bytes = IconWriter.build(normal: img, selected: nil, options: IconOptions())
+        let bytes = try IconWriter.build(normal: img, selected: nil, options: IconOptions())
         XCTAssertGreaterThan(bytes.count, 78)
         XCTAssertEqual(beU16(bytes, 0), 0xE310) // WB_DISKMAGIC
         XCTAssertEqual(beU16(bytes, 2), 1)      // WB_DISKVERSION

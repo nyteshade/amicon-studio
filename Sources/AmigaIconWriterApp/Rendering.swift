@@ -2,6 +2,7 @@
 import AppKit
 import CoreImage
 import AmigaIconKit
+import AmigaIconImageIO // RGBAImage <-> Data/CGImage (pngData, init(data:)/(cgImage:))
 
 extension RGBAImage {
     /// Converts to an `NSImage` for on-screen preview.
@@ -73,7 +74,8 @@ enum IconRenderer {
         guard let nData = item.normalPNG,
               let normal = RGBAImage.effected(from: nData, effects: item.effects) else { return nil }
         let selected = item.clickedPNG.flatMap { RGBAImage.effected(from: $0, effects: item.effects) }
-        let bytes = IconWriter.build(normal: normal, selected: selected, options: item.settings.makeOptions())
+        guard let bytes = try? IconWriter.build(normal: normal, selected: selected,
+                                                options: item.settings.makeOptions()) else { return nil }
         return Data(bytes)
     }
 }

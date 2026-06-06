@@ -40,17 +40,21 @@ in the canvas margin), with configurable colour and radius.
 ```
 Package.swift                 SwiftPM: library + CLI + app targets
 Sources/
-  AmigaIconKit/               Pure-Foundation core (cross-platform, tested)
-    BinaryWriter.swift          big-endian byte writer + bit reader/writer
+  AmigaIconKit/               Pure-Foundation core — zero platform deps, tested.
+                              The reusable library: everything that creates,
+                              encodes and decodes .info icons lives here.
+    BinaryWriter.swift          big-endian byte reader/writer + bit reader/writer
     RGBAImage.swift             pixel buffer + glow generator
-    IndexedImage.swift          median-cut colour quantiser
+    IndexedImage.swift          median-cut quantiser + indexed -> RGBA renderer
     ClassicIcon.swift           DiskObject types, planar bitplane Image, palettes
     ColorIcon.swift             IFF FORM ICON (GlowIcon) encoder
-    PackBits.swift              ColorIcon bit-stream RLE (+ decoder for tests)
+    PackBits.swift              ColorIcon bit-stream RLE (+ decoder)
     NewIcons.swift              EXPERIMENTAL NewIcons tool-type encoder
     IconComposer.swift          fit/centre artwork in a canvas
     IconWriter.swift            high-level .info assembler + IconOptions
-    ImageLoading.swift          NSImage/ImageIO <-> RGBAImage (Apple only)
+    IconDecoder.swift           reads .info back (round-trip / preview / editing)
+  AmigaIconImageIO/           Optional Apple-only convenience target.
+    ImageLoading.swift          NSImage/ImageIO <-> RGBAImage (PNG/JPEG/HEIC…)
   amigaicon/                  Command-line front-end (macOS)
   AmigaIconWriterApp/         SwiftUI document app (macOS)
 Tests/AmigaIconKitTests/      XCTest round-trip + structure tests
@@ -71,6 +75,24 @@ swift test                       # runs the format round-trip / structure tests
 > ImageIO / SwiftUI), but `AmigaIconKit` and its tests do. To run only the kit
 > tests on Linux, temporarily trim `Package.swift` to the `AmigaIconKit` library
 > and test target.
+
+### Reusing the core in your own code
+
+`AmigaIconKit` is a standalone, dependency-free library product — the entire
+create / encode / decode pipeline with no platform requirements. Depend on it
+directly (`.product(name: "AmigaIconKit", package: "AmigaIconWriter")`) and feed
+it an `RGBAImage`:
+
+```swift
+import AmigaIconKit
+
+var art = RGBAImage(width: 64, height: 64)   // fill your pixels…
+let bytes = try IconWriter.build(normal: art, selected: nil, options: IconOptions())
+// …write `bytes` to "Foo.info". Read it back with IconDecoder.decode(bytes).
+```
+
+On Apple platforms, add the separate **`AmigaIconImageIO`** product if you want
+to load source art from files (`RGBAImage(contentsOf:)`) or get `pngData()`.
 
 ## The command-line tool (macOS)
 

@@ -1,5 +1,6 @@
 import Foundation
 import AmigaIconKit
+import AmigaIconImageIO // RGBAImage(contentsOf:) ImageIO loader
 
 // A small, dependency-free command-line front-end for AmigaIconKit. Image
 // loading uses ImageIO, so this is effectively a macOS tool.
@@ -103,7 +104,12 @@ if let sp = selectedPath {
     selected = s
 }
 
-let bytes = IconWriter.build(normal: normal, selected: selected, options: options)
+let bytes: [UInt8]
+do {
+    bytes = try IconWriter.build(normal: normal, selected: selected, options: options)
+} catch {
+    fail("could not build icon: \(error)")
+}
 do {
     try Data(bytes).write(to: URL(fileURLWithPath: out))
     print("wrote \(out) (\(bytes.count) bytes)")

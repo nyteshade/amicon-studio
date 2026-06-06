@@ -3,6 +3,7 @@ import Foundation
 #if canImport(CoreGraphics) && canImport(ImageIO)
 import CoreGraphics
 import ImageIO
+import AmigaIconKit
 
 public extension RGBAImage {
     /// Decodes any image format ImageIO understands (PNG, JPEG, TIFF, HEIC, GIF,

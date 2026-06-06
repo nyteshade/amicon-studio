@@ -3,6 +3,7 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 import AmigaIconKit
+import AmigaIconImageIO // RGBAImage(data:) / pngData() for normalising drops
 
 /// A drag-and-drop target ("bucket") for a single source image. Accepts PNG,
 /// JPEG, TIFF, HEIC and anything else macOS can decode, plus drops from Finder
