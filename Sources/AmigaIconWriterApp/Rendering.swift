@@ -43,30 +43,47 @@ enum IconRenderer {
     /// planar image, rather than the full-colour source. What you see is what
     /// the Amiga gets.
     static func previews(for item: IconItem) -> (normal: NSImage?, clicked: NSImage?, planar: NSImage?) {
-        guard let data = infoData(for: item),
-              let decoded = try? IconDecoder.decode([UInt8](data)) else {
+        guard let nData = item.normalPNG,
+              let normal = RGBAImage.effected(from: nData, effects: item.effects) else {
             return (nil, nil, nil)
         }
         let opts = item.settings.makeOptions()
-        // The planar image carries no palette of its own; render it against the
-        // chosen Workbench palette, drawing the background index transparent.
-        let planarRGBA = decoded.planarNormal.rgba(palette: opts.planarPalette, transparentIndex: 0)
+        let selected = item.clickedPNG.flatMap { RGBAImage.effected(from: $0, effects: item.effects) }
+
+        // Encode then decode, so the colour (GlowIcon) states reflect the real
+        // reduced palette and transparent index that get written.
+        guard let bytes = try? IconWriter.build(normal: normal, selected: selected, options: opts),
+              let decoded = try? IconDecoder.decode([UInt8](bytes)) else {
+            return (nil, nil, nil)
+        }
+
+        // Planar fallback: render the exact pen-mapped image the writer embeds,
+        // with the Workbench background pen (0) shown transparent.
+        let planarImg = planarPreview(for: normal, options: opts)
 
         // Unclicked: the GlowIcon if one was written, otherwise the planar truth.
-        let normal = (decoded.colorIconNormal?.rgba() ?? planarRGBA).nsImage
+        let normalImg = (decoded.colorIconNormal?.rgba() ?? planarImg).nsImage
 
         // Clicked: the GlowIcon selected state (explicit image or auto-glow),
         // else an explicit planar selected image, else nothing.
         let clicked: NSImage?
         if let sel = decoded.colorIconSelected {
             clicked = sel.rgba().nsImage
-        } else if let planarSel = decoded.planarSelected {
-            clicked = planarSel.rgba(palette: opts.planarPalette, transparentIndex: 0).nsImage
+        } else if let sel = selected {
+            clicked = planarPreview(for: sel, options: opts).nsImage
         } else {
             clicked = nil
         }
 
-        return (normal, clicked, planarRGBA.nsImage)
+        return (normalImg, clicked, planarImg.nsImage)
+    }
+
+    /// The planar pen-mapped image the writer would embed, with pen 0 (the
+    /// Workbench background) made transparent for display against a checkerboard.
+    private static func planarPreview(for source: RGBAImage, options: IconOptions) -> RGBAImage {
+        var indexed = IconWriter.planarIndexed(for: source, options: options)
+        indexed.transparentIndex = 0
+        return indexed.rgba()
     }
 
     /// Builds the `.info` byte stream for a single icon, with effects applied.

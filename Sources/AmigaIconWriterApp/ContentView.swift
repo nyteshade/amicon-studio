@@ -219,8 +219,9 @@ struct OutputSettingsView: View {
                     Stepper("Canvas: \(settings.planarCanvas)px", value: $settings.planarCanvas, in: 8...256)
                     Stepper("Artwork: \(settings.planarContent)px", value: $settings.planarContent, in: 8...256)
                     Picker("Palette", selection: $settings.paletteName) {
-                        Text("Workbench (4)").tag("wb4")
-                        Text("MagicWB (8)").tag("magicwb8")
+                        ForEach(WorkbenchPalette.presets) { wb in
+                            Text(wb.name).tag(wb.id)
+                        }
                     }
                 }
 
@@ -296,7 +297,7 @@ struct PlanarFallbackPreview: View {
     let settings: RenderSettings
 
     private var caption: String {
-        let palette = settings.paletteName == "magicwb8" ? "MagicWB (8)" : "Workbench (4)"
+        let palette = WorkbenchPalette.resolve(settings.paletteName).name
         return "\(settings.planarCanvas)×\(settings.planarCanvas) · \(palette)"
     }
 

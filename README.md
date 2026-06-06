@@ -33,6 +33,30 @@ around the artwork. AmigaIconWriter can either use a second image you supply, or
 **auto-generate** the glow from the normal artwork (a distance-transform bloom
 in the canvas margin), with configurable colour and radius.
 
+### Workbench palettes (planar colour reduction)
+
+Classic `.info` files store **no palette of their own** — the planar image's
+indices are drawn with the live Workbench screen pens — so the planar fallback
+is reduced against a chosen target pen set (`WorkbenchPalette`):
+
+| Preset | Pens | Notes |
+|--------|------|-------|
+| Workbench 1.x | 4 | blue / white / black / orange |
+| Workbench 2.x / 3.1 | 4 | the grey desktop default |
+| Workbench 3.2 | 8 or 16 | first 8 pens reserved (MagicWB-compatible) |
+| MagicWB | 8 or 16 | the de-facto 8-pen standard |
+
+For the 8- and 16-colour sets the **leading system pens are reserved** (kept
+exactly, so the icon never clobbers the desktop pens); on a 16-colour set the
+upper 8 pens are generated from the artwork during reduction. Pick the set in
+the CLI with `--palette` (`wb1`/`wb2`/`wb32-8`/`wb32-16`/`mwb8`/`mwb16`) or in
+the app's *Output Settings*.
+
+> ⚠️ The exact RGB values for the WB 1.x / 2.x pens and the OS 3.2 system pens
+> are the conventional/MagicWB-compatible ones; tweak them in
+> `WorkbenchPalettes.swift` / `ClassicIcon.swift` if you target a specific
+> release's prefs exactly.
+
 ---
 
 ## Project layout

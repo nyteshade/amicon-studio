@@ -25,7 +25,13 @@ ICON:
 PLANAR (OS1–3 fallback, always written):
   --planar-canvas <n>    On-disk planar size (default 40)
   --planar-content <n>   Artwork fit size within the canvas (default 36)
-  --palette <p>          wb4 | magicwb8  (default wb4)
+  --palette <p>          Workbench pen set for colour reduction:
+                           wb1     Workbench 1.x (4)
+                           wb2     Workbench 2.x / 3.1 (4)   [default]
+                           wb32-8  Workbench 3.2 (8)
+                           wb32-16 Workbench 3.2 (16, 8 pens reserved)
+                           mwb8    MagicWB (8)
+                           mwb16   MagicWB (16, 8 pens reserved)
 
 COLORICON / GLOWICON (OS3.5+, 24-bit):
   --no-color             Don't write the ColorIcon block
@@ -76,8 +82,8 @@ while !args.isEmpty {
     case "--planar-canvas": options.planarCanvasSize = Int(nextValue(arg)) ?? options.planarCanvasSize
     case "--planar-content": options.planarContentSize = Int(nextValue(arg)) ?? options.planarContentSize
     case "--palette":
-        let p = nextValue(arg)
-        options.planarPalette = (p == "magicwb8") ? magicWB8Palette : workbench4Palette
+        guard let wb = parsePalette(nextValue(arg)) else { fail("unknown --palette") }
+        options.planarPalette = wb
     case "--no-color": options.writeColorIcon = false
     case "--color-canvas": options.colorCanvasSize = Int(nextValue(arg)) ?? options.colorCanvasSize
     case "--color-content": options.colorContentSize = Int(nextValue(arg)) ?? options.colorContentSize
@@ -129,6 +135,18 @@ func parseType(_ s: String) -> IconType? {
     case "kick": return .kick
     case "appicon": return .appIcon
     default: return nil
+    }
+}
+
+func parsePalette(_ s: String) -> WorkbenchPalette? {
+    switch s.lowercased() {
+    case "wb1", "wb1.x", "1.x":            return .workbench1_4
+    case "wb2", "wb3.1", "wb31", "wb4":    return .workbench2_4
+    case "wb32", "wb32-8", "wb32.8", "3.2": return .workbench32_8
+    case "wb32-16", "wb32.16":             return .workbench32_16
+    case "mwb", "mwb8", "magicwb8", "magicwb": return .magicWB_8
+    case "mwb16", "magicwb16":             return .magicWB_16
+    default:                                return nil
     }
 }
 

@@ -132,6 +132,36 @@ public enum ColorQuantizer {
                             palette: palette, transparentIndex: nil)
     }
 
+    /// Maps an image onto a palette whose first `reserved.count` entries are the
+    /// **fixed Workbench system pens** and whose remaining entries (up to
+    /// `totalColors`) are generated from the image's own colours by median cut.
+    /// Every pixel is then matched to the nearest entry of the combined palette;
+    /// transparent pixels collapse to `backgroundIndex` (pen 0, the Workbench
+    /// background).
+    ///
+    /// This is how well-behaved 8/16-colour Amiga icons reduce colour: they never
+    /// clobber the reserved desktop pens, but can still introduce their own
+    /// colours in the pens above them.
+    public static func mapReserving(_ image: RGBAImage,
+                                    reserved: [RGB],
+                                    totalColors: Int,
+                                    backgroundIndex: Int = 0,
+                                    alphaThreshold: UInt8 = 128) -> IndexedImage {
+        let freeBudget = max(0, totalColors - reserved.count)
+        var freeColors: [RGB] = []
+        if freeBudget > 0 {
+            let w = image.width, h = image.height
+            var opaque: [RGB] = []
+            opaque.reserveCapacity(w * h)
+            for i in 0 ..< (w * h) where image.pixels[i * 4 + 3] >= alphaThreshold {
+                opaque.append(RGB(image.pixels[i * 4], image.pixels[i * 4 + 1], image.pixels[i * 4 + 2]))
+            }
+            if !opaque.isEmpty { freeColors = medianCut(opaque, maxColors: freeBudget) }
+        }
+        return map(image, to: reserved + freeColors,
+                   backgroundIndex: backgroundIndex, alphaThreshold: alphaThreshold)
+    }
+
     // MARK: - Median cut
 
     private static func medianCut(_ colors: [RGB], maxColors: Int) -> [RGB] {

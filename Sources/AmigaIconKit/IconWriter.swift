@@ -11,9 +11,12 @@ public struct IconOptions {
     public var toolTypes: [String] = []
 
     // --- Classic planar fallback (always written; OS1–3 era) ---
-    /// Palette the planar indices are matched against (the Workbench screen
-    /// palette interprets them at display time).
-    public var planarPalette: [RGB] = workbench4Palette
+    /// Which Workbench pen set the planar indices are matched against. Classic
+    /// `.info` files store no palette of their own, so indices are interpreted
+    /// against the live Workbench screen — matching the target release's pens is
+    /// what makes the icon look right. The leading system pens are reserved; any
+    /// pens above them are generated from the artwork during colour reduction.
+    public var planarPalette: WorkbenchPalette = .workbench2_4
     /// Artwork is fit within this, centred in `planarCanvasSize`.
     public var planarContentSize: Int = 36
     /// On-disk planar image dimension. Small, as was typical pre-GlowIcons.
@@ -52,11 +55,10 @@ public enum IconWriter {
     public static func build(normal: RGBAImage,
                              selected: RGBAImage?,
                              options: IconOptions) throws -> [UInt8] {
-        // ---- Planar fallback (small, fixed palette) ---------------------
-        let planarNormalRGBA = normal.centered(inCanvas: options.planarCanvasSize,
-                                                contentSize: options.planarContentSize)
-        let planarNormal = ColorQuantizer.map(planarNormalRGBA, to: options.planarPalette)
-        let planarDepth = max(1, Int(ceil(log2(Double(max(2, options.planarPalette.count))))))
+        // ---- Planar fallback (Workbench pens; system pens reserved) -----
+        let wb = options.planarPalette
+        let planarNormal = planarIndexed(for: normal, options: options)
+        let planarDepth = wb.depth
         let planarNormalImg = PlanarImage(planarNormal, depth: planarDepth)
 
         // A planar selected image is only written when the caller supplies one
@@ -65,7 +67,8 @@ public enum IconWriter {
         if let sel = selected {
             let rgba = sel.centered(inCanvas: options.planarCanvasSize,
                                     contentSize: options.planarContentSize)
-            let mapped = ColorQuantizer.map(rgba, to: options.planarPalette)
+            let mapped = ColorQuantizer.mapReserving(rgba, reserved: wb.systemPens,
+                                                      totalColors: wb.totalColors)
             planarSelectedImg = PlanarImage(mapped, depth: planarDepth)
         }
 
@@ -110,6 +113,16 @@ public enum IconWriter {
                              planarNormal: planarNormalImg,
                              planarSelected: planarSelectedImg,
                              colorIcon: colorIcon)
+    }
+
+    /// The composed, pen-mapped planar image the writer embeds for the normal
+    /// state. Exposed so a UI can preview the exact planar result (which pens the
+    /// artwork reduced to) without re-deriving the pipeline.
+    public static func planarIndexed(for normal: RGBAImage, options: IconOptions) -> IndexedImage {
+        let composed = normal.centered(inCanvas: options.planarCanvasSize,
+                                       contentSize: options.planarContentSize)
+        let wb = options.planarPalette
+        return ColorQuantizer.mapReserving(composed, reserved: wb.systemPens, totalColors: wb.totalColors)
     }
 
     // MARK: - DiskObject serialisation

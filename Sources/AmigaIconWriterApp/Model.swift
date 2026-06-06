@@ -22,7 +22,8 @@ struct RenderSettings: Codable, Equatable {
     // Classic planar (OS1–3): smaller, as was typical
     var planarCanvas = 40
     var planarContent = 36
-    var paletteName = "wb4" // wb4 | magicwb8
+    /// A `WorkbenchPalette` preset id (see `WorkbenchPalette.presets`).
+    var paletteName = WorkbenchPalette.workbench2_4.id
 
     // Misc
     var writeNewIcons = false // experimental
@@ -42,7 +43,7 @@ struct RenderSettings: Codable, Equatable {
         if let c = RGB(hex: glowColorHex) { o.glowColor = c }
         o.planarCanvasSize = planarCanvas
         o.planarContentSize = planarContent
-        o.planarPalette = paletteName == "magicwb8" ? magicWB8Palette : workbench4Palette
+        o.planarPalette = WorkbenchPalette.resolve(paletteName)
         o.writeNewIcons = writeNewIcons
         o.defaultTool = defaultTool
         o.toolTypes = toolTypes
