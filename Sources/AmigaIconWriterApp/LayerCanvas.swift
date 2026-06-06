@@ -48,9 +48,38 @@ struct LayerCanvas: View {
             .coordinateSpace(name: space)
             .contentShape(Rectangle())
             .onTapGesture { selection = nil }
+            .contextMenu { canvasMenu } // right-click empty canvas
         }
         .frame(width: size, height: size)
         .onDrop(of: [.fileURL, .image, .png, .tiff, .jpeg], isTargeted: nil, perform: handleDrop)
+        .modifier(ScrollWheelHandler { adjustSelectedScale(by: $0) }) // scroll = resize selected
+    }
+
+    @ViewBuilder private var canvasMenu: some View {
+        Button { addViaPanel() } label: { Label("Add Layer…", systemImage: "plus") }
+        if selection != nil { Button("Deselect") { selection = nil } }
+    }
+
+    /// The context menu for a layer (shared by the canvas overlay and the list).
+    @ViewBuilder private func layerMenu(_ l: Layer) -> some View {
+        Button(l.visible ? "Hide" : "Show") { setVisible(l.id, !l.visible) }
+        Button("Duplicate") { duplicate(l.id) }
+        Divider()
+        Button("Bring to Front") { bringToFront(l.id) }
+        Button("Bring Forward") { move(byID: l.id, 1) }
+        Button("Send Backward") { move(byID: l.id, -1) }
+        Button("Send to Back") { sendToBack(l.id) }
+        Divider()
+        Menu("Blend") {
+            ForEach(BlendMode.allCases, id: \.self) { m in
+                Button(m.rawValue.capitalized) { setBlend(l.id, m) }
+            }
+        }
+        Menu("Applies To") {
+            ForEach(EffectTarget.allCases) { t in Button(t.label) { setTarget(l.id, t) } }
+        }
+        Divider()
+        Button("Delete", role: .destructive) { item.layers.removeAll { $0.id == l.id }; selection = nil }
     }
 
     @ViewBuilder
@@ -76,6 +105,7 @@ struct LayerCanvas: View {
                     layer.wrappedValue.y = min(1, max(0, (v.location.y - rect.minY) / rect.height))
                 })
                 .onTapGesture { selection = l.id }
+                .contextMenu { layerMenu(l) }
 
             if selected {
                 Circle().fill(Color.accentColor).frame(width: 12, height: 12)
@@ -140,12 +170,48 @@ struct LayerCanvas: View {
                     .fill(l.id == selection ? Color.accentColor.opacity(0.18) : Color.clear))
                 .contentShape(Rectangle())
                 .onTapGesture { selection = l.id }
+                .contextMenu { layerMenu(l) }
             }
         }
         .frame(width: size)
     }
 
     // MARK: - Mutations
+
+    private func setVisible(_ id: UUID, _ v: Bool) { mutate(id) { $0.visible = v } }
+    private func setBlend(_ id: UUID, _ m: BlendMode) { mutate(id) { $0.blend = m } }
+    private func setTarget(_ id: UUID, _ t: EffectTarget) { mutate(id) { $0.target = t } }
+    private func mutate(_ id: UUID, _ change: (inout Layer) -> Void) {
+        guard let i = item.layers.firstIndex(where: { $0.id == id }) else { return }
+        change(&item.layers[i])
+    }
+
+    private func duplicate(_ id: UUID) {
+        guard let i = item.layers.firstIndex(where: { $0.id == id }) else { return }
+        var copy = item.layers[i]
+        copy.id = UUID(); copy.name += " copy"
+        copy.x = min(1, copy.x + 0.04); copy.y = min(1, copy.y + 0.04)
+        item.layers.insert(copy, at: i + 1)
+        selection = copy.id
+    }
+
+    private func move(byID id: UUID, _ delta: Int) {
+        guard let i = item.layers.firstIndex(where: { $0.id == id }) else { return }
+        move(i, by: delta)
+    }
+    private func bringToFront(_ id: UUID) {
+        guard let i = item.layers.firstIndex(where: { $0.id == id }) else { return }
+        let l = item.layers.remove(at: i); item.layers.append(l)
+    }
+    private func sendToBack(_ id: UUID) {
+        guard let i = item.layers.firstIndex(where: { $0.id == id }) else { return }
+        let l = item.layers.remove(at: i); item.layers.insert(l, at: 0)
+    }
+
+    private func adjustSelectedScale(by deltaY: CGFloat) {
+        guard let i = selectedIndex else { return }
+        item.layers[i].scale = min(2, max(0.05, item.layers[i].scale + Double(deltaY) * 0.003))
+    }
 
     private func move(_ idx: Int, by delta: Int) {
         let j = idx + delta
@@ -206,6 +272,31 @@ struct LayerCanvas: View {
         let s = min(container.width / imageSize.width, container.height / imageSize.height)
         let w = imageSize.width * s, h = imageSize.height * s
         return CGRect(x: (container.width - w) / 2, y: (container.height - h) / 2, width: w, height: h)
+    }
+}
+
+/// Reports scroll-wheel deltas while the pointer is over the modified view, via a
+/// local event monitor — so it doesn't interfere with SwiftUI's drag/click
+/// gestures. Used to resize the selected layer with the scroll wheel.
+private struct ScrollWheelHandler: ViewModifier {
+    let onScroll: (CGFloat) -> Void
+    @State private var monitor: Any?
+
+    func body(content: Content) -> some View {
+        content
+            .onHover { inside in
+                if inside, monitor == nil {
+                    monitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
+                        onScroll(event.scrollingDeltaY)
+                        return nil // consume while over the canvas
+                    }
+                } else if !inside { removeMonitor() }
+            }
+            .onDisappear(perform: removeMonitor)
+    }
+
+    private func removeMonitor() {
+        if let m = monitor { NSEvent.removeMonitor(m); monitor = nil }
     }
 }
 #endif
