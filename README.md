@@ -186,6 +186,9 @@ sandboxing, and a distributable bundle):
 - **Centre canvas** — two large slots for the selected icon: **left =
   unclicked**, **right = clicked**. Drag any macOS image (PNG, JPEG, TIFF,
   HEIC…) onto a slot, from Finder or another app.
+- **Badges** — drop one or more emblem images onto the badge canvas, then
+  **drag to position** and **drag the corner handle to resize** each one. They're
+  composited onto the artwork and stored (normalised) with the project.
 - **Leading sidebar** — *tools*: a palette of CoreImage effects (brightness,
   contrast, saturation, hue, sepia, monochrome, invert, bloom, sharpen,
   vignette) you can stack onto the artwork, plus *Output Settings* (icon type,

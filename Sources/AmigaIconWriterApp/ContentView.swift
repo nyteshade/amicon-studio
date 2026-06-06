@@ -371,6 +371,12 @@ struct IconCanvas: View {
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }
+                if let npng = item.wrappedValue.normalPNG {
+                    Divider().frame(width: 360)
+                    Text("Badges — drag to move, drag the handle to resize")
+                        .font(.caption).foregroundStyle(.secondary)
+                    BadgeCanvas(item: item, background: NSImage(data: npng))
+                }
                 if let planar = previews.planar {
                     PlanarFallbackPreview(image: planar, settings: item.wrappedValue.settings)
                 }
