@@ -127,6 +127,16 @@ final class QualityTests: XCTestCase {
         XCTAssertEqual(out.pixel(0, 0).r, 255) // untouched
     }
 
+    func testOutlineSurroundsSilhouette() {
+        var img = RGBAImage(width: 8, height: 8)   // transparent
+        img.setPixel(4, 4, 255, 255, 255, 255)     // one opaque white pixel
+        let o = img.outlined(color: (0, 0, 0), thickness: 1)
+        XCTAssertEqual(o.pixel(3, 4).a, 255); XCTAssertEqual(o.pixel(3, 4).r, 0) // black outline
+        XCTAssertEqual(o.pixel(5, 4).a, 255)
+        XCTAssertEqual(o.pixel(4, 4).r, 255)        // original art untouched
+        XCTAssertEqual(o.pixel(0, 0).a, 0)          // far pixel stays transparent
+    }
+
     // MARK: - Non-square canvas (preserve aspect)
 
     /// A wide source with `preserveAspectRatio` yields a non-square canvas that

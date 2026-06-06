@@ -100,6 +100,46 @@ public struct RGBAImage: Equatable {
 }
 
 public extension RGBAImage {
+    /// Draws a solid outline of `thickness` pixels hugging the opaque silhouette,
+    /// behind the existing artwork (only transparent pixels within `thickness` of
+    /// an opaque pixel are filled). Great for making icons read against any
+    /// Workbench backdrop. Needs that much transparent margin around the art or
+    /// the outline is clipped.
+    func outlined(color: (r: UInt8, g: UInt8, b: UInt8), thickness: Int,
+                  alphaThreshold: UInt8 = 128) -> RGBAImage {
+        guard thickness > 0 else { return self }
+        let w = width, h = height
+        let big = w + h + 1
+        var dist = [Int](repeating: big, count: w * h)
+        for y in 0..<h {
+            for x in 0..<w where pixel(x, y).a >= alphaThreshold { dist[y * w + x] = 0 }
+        }
+        // Two-pass approximate distance transform.
+        for y in 0..<h {
+            for x in 0..<w {
+                let i = y * w + x
+                if x > 0 { dist[i] = min(dist[i], dist[i - 1] + 1) }
+                if y > 0 { dist[i] = min(dist[i], dist[i - w] + 1) }
+            }
+        }
+        for y in stride(from: h - 1, through: 0, by: -1) {
+            for x in stride(from: w - 1, through: 0, by: -1) {
+                let i = y * w + x
+                if x < w - 1 { dist[i] = min(dist[i], dist[i + 1] + 1) }
+                if y < h - 1 { dist[i] = min(dist[i], dist[i + w] + 1) }
+            }
+        }
+        var out = self
+        for y in 0..<h {
+            for x in 0..<w {
+                let d = dist[y * w + x]
+                guard d > 0, d <= thickness, pixel(x, y).a < alphaThreshold else { continue }
+                out.setPixel(x, y, color.r, color.g, color.b, 255)
+            }
+        }
+        return out
+    }
+
     /// Composites `top` over a copy of this image using source-over alpha
     /// blending, with `top`'s upper-left corner at `(atX, atY)`. Parts of `top`
     /// that fall outside the bounds are clipped. Used to stamp a badge/emblem
