@@ -17,6 +17,7 @@ struct LayerCanvas: View {
 
     @State private var selection: UUID?
     @State private var renamingID: UUID?
+    @State private var dragAnchor: (id: UUID, x: Double, y: Double)?
     private let space = "layerCanvas"
 
     private var selectedIndex: Int? { item.layers.firstIndex { $0.id == selection } }
@@ -104,9 +105,14 @@ struct LayerCanvas: View {
                 .position(center)
                 .gesture(DragGesture(coordinateSpace: .named(space)).onChanged { v in
                     selection = l.id
-                    layer.wrappedValue.x = min(1, max(0, (v.location.x - rect.minX) / rect.width))
-                    layer.wrappedValue.y = min(1, max(0, (v.location.y - rect.minY) / rect.height))
-                })
+                    if dragAnchor?.id != l.id { dragAnchor = (l.id, l.x, l.y) }
+                    var nx = min(1, max(0, (v.location.x - rect.minX) / rect.width))
+                    var ny = min(1, max(0, (v.location.y - rect.minY) / rect.height))
+                    if NSEvent.modifierFlags.contains(.shift), let a = dragAnchor {
+                        if abs(nx - a.x) >= abs(ny - a.y) { ny = a.y } else { nx = a.x } // lock to an axis
+                    }
+                    layer.wrappedValue.x = nx; layer.wrappedValue.y = ny
+                }.onEnded { _ in dragAnchor = nil })
                 .onTapGesture { selection = l.id }
                 .contextMenu { layerMenu(l) }
 

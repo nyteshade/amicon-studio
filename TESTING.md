@@ -21,6 +21,7 @@ tests (`swift test`); this list is everything else. Grown as features land.
 ## Canvas / layers (Photoshop-style)
 - [ ] Drag a layer to move it; handle aligns with where it composites.
 - [ ] Corner-handle resize feels right.
+- [ ] Shift-drag constrains layer movement to one axis.
 - [ ] **Scroll-wheel** over canvas resizes the selected layer — **check direction/sign** (easy to flip).
 - [ ] Context menu on a layer (canvas + list): Hide/Show, Duplicate, Bring to
       Front/Forward, Send Backward/to Back, Blend submenu, Applies-To submenu, Delete.
