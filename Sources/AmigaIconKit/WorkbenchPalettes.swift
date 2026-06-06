@@ -43,7 +43,7 @@ public struct WorkbenchPalette: Identifiable, Equatable, Hashable, Codable {
     }
 
     /// Upper bound on reserved pens (a screen offers at most 256 pens).
-    static let maxPens = 256
+    public static let maxPens = 256
 
     /// A user-defined palette (not one of the named presets).
     public static func custom(systemPens: [RGB], totalColors: Int) -> WorkbenchPalette {
