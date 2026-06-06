@@ -21,7 +21,7 @@ private extension RGBAImage {
         guard let ci = CIImage(data: data) else { return RGBAImage(data: data) }
         let out = EffectPipeline.apply(effects, to: ci)
         let rect = ci.extent.isInfinite ? out.extent : ci.extent
-        guard rect.isFinite, !rect.isEmpty,
+        guard !rect.isInfinite, !rect.isNull, !rect.isEmpty,
               let cg = sharedCIContext.createCGImage(out, from: rect) else {
             return RGBAImage(data: data)
         }
