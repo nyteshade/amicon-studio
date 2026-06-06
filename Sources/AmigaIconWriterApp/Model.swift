@@ -53,8 +53,8 @@ struct RenderSettings: Codable, Equatable {
         o.resampleFilter = resample
         o.planarDither = planarDither
         o.writeNewIcons = writeNewIcons
-        o.defaultTool = defaultTool
-        o.toolTypes = toolTypes
+        o.defaultTool = defaultTool.trimmingCharacters(in: .whitespaces)
+        o.toolTypes = toolTypes.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
         return o
     }
 }

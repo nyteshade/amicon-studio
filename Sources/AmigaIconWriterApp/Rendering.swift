@@ -94,6 +94,17 @@ enum IconRenderer {
         return Data(bytes)
     }
 
+    /// Builds a project item from a source image file (PNG/JPEG/TIFF/HEIC…),
+    /// normalising it to PNG at full resolution. Returns `nil` if the data isn't
+    /// a decodable image.
+    static func item(fromImage data: Data, name: String) -> IconItem? {
+        guard let rgba = RGBAImage(data: data), let png = rgba.pngData() else { return nil }
+        var item = IconItem()
+        item.name = name
+        item.normalPNG = png
+        return item
+    }
+
     /// Builds an editable project item from an existing `.info` file's bytes,
     /// so a user can open an icon, tweak it, and re-export. The highest-fidelity
     /// image available (the GlowIcon, else the planar fallback) becomes the

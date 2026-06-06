@@ -28,6 +28,7 @@ struct ContentView: View {
         .toolbar {
             ToolbarItemGroup {
                 Button(action: addIcon) { Label("Add Icon", systemImage: "plus") }
+                Button(action: importImages) { Label("Import Images", systemImage: "photo.badge.plus") }
                 Button(action: importInfo) { Label("Import .info", systemImage: "square.and.arrow.down") }
                 Button(action: exportSelected) { Label("Export .info", systemImage: "square.and.arrow.up") }
                     .disabled(selectedItemBinding == nil)
@@ -57,6 +58,42 @@ struct ContentView: View {
         guard let id = selection else { return }
         document.project.items.removeAll { $0.id == id }
         selection = document.project.items.first?.id
+    }
+
+    // MARK: - Import images (files or whole folders)
+
+    private func importImages() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.message = "Choose images or a folder of images to add as icons."
+        panel.allowedContentTypes = [.image, .folder]
+        guard panel.runModal() == .OK else { return }
+
+        // Expand any chosen folders into their top-level image files.
+        var files: [URL] = []
+        for url in panel.urls {
+            if (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true {
+                let contents = (try? FileManager.default.contentsOfDirectory(
+                    at: url, includingPropertiesForKeys: nil)) ?? []
+                files += contents.filter(isImageFile).sorted { $0.lastPathComponent < $1.lastPathComponent }
+            } else {
+                files.append(url)
+            }
+        }
+        for url in files {
+            guard let data = try? Data(contentsOf: url),
+                  let item = IconRenderer.item(fromImage: data,
+                                               name: url.deletingPathExtension().lastPathComponent) else { continue }
+            document.project.items.append(item)
+            selection = item.id
+        }
+    }
+
+    private func isImageFile(_ url: URL) -> Bool {
+        guard let type = UTType(filenameExtension: url.pathExtension.lowercased()) else { return false }
+        return type.conforms(to: .image)
     }
 
     // MARK: - Import existing .info icons
@@ -250,6 +287,13 @@ struct OutputSettingsView: View {
                     }
                 }
 
+                Group {
+                    Text("Metadata").font(.caption.weight(.semibold))
+                    TextField("Default tool", text: $settings.defaultTool)
+                        .textFieldStyle(.roundedBorder)
+                    ToolTypesEditor(toolTypes: $settings.toolTypes)
+                }
+
                 Toggle("NewIcons (experimental)", isOn: $settings.writeNewIcons)
             }
             .padding(.top, 6)
@@ -271,6 +315,34 @@ struct OutputSettingsView: View {
                 settings.glowColorHex = rgb.hexString
             }
         )
+    }
+}
+
+/// An editable list of Amiga tool types (`KEY=VALUE` lines).
+struct ToolTypesEditor: View {
+    @Binding var toolTypes: [String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("TOOL TYPES").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                Spacer()
+                Button { toolTypes.append("") } label: { Image(systemName: "plus") }
+                    .buttonStyle(.borderless).help("Add a tool type")
+            }
+            ForEach(toolTypes.indices, id: \.self) { i in
+                HStack(spacing: 4) {
+                    TextField("KEY=VALUE", text: Binding(
+                        get: { i < toolTypes.count ? toolTypes[i] : "" },
+                        set: { if i < toolTypes.count { toolTypes[i] = $0 } }))
+                        .textFieldStyle(.roundedBorder)
+                    Button { if i < toolTypes.count { toolTypes.remove(at: i) } } label: {
+                        Image(systemName: "minus.circle")
+                    }
+                    .buttonStyle(.borderless).help("Remove")
+                }
+            }
+        }
     }
 }
 

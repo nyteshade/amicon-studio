@@ -185,10 +185,12 @@ sandboxing, and a distributable bundle):
   contrast, saturation, hue, sepia, monochrome, invert, bloom, sharpen,
   vignette) you can stack onto the artwork, plus *Output Settings* (icon type,
   GlowIcon canvas/artwork sizes, max colours, glow colour & radius, planar
-  size & palette).
+  size & palette, dithering & scaling, and the **default tool / tool types**).
 - Effects are applied **non-destructively**: the project keeps the **original
   dropped images at full resolution**, so you can change target sizes or
   effects at any time and re-render without quality loss (CandyBar-style).
+- **Import Images** (toolbar): add one or many source images — or a whole
+  **folder** of them — as new icons in a single step (CandyBar-style sets).
 - **Import** (toolbar): open existing `.info` icons back into the project — the
   GlowIcon (or planar fallback) becomes an editable original, with the icon type,
   default tool and tool types carried over — then tweak and re-export.
