@@ -375,7 +375,7 @@ public extension RGBAImage {
     /// Out-of-bounds parts of `top` are clipped. `.normal` at opacity 1 is plain
     /// source-over. Used to stamp badges / layers onto icon artwork.
     func blending(_ top: RGBAImage, atX: Int, atY: Int,
-                  mode: BlendMode = .normal, opacity: Double = 1) -> RGBAImage {
+                  mode: LayerBlendMode = .normal, opacity: Double = 1) -> RGBAImage {
         let op = max(0, min(1, opacity))
         var out = self
         for ty in 0..<top.height {
@@ -410,7 +410,7 @@ public extension RGBAImage {
 
 /// Layer blend modes for `RGBAImage.blending`. Channel values are normalised
 /// 0...1; `cb` is the backdrop, `cs` the source.
-public enum BlendMode: String, Codable, CaseIterable, Equatable {
+public enum LayerBlendMode: String, Codable, CaseIterable, Equatable {
     case normal, multiply, screen, overlay, darken, lighten, add
 
     func blend(_ cb: Double, _ cs: Double) -> Double {

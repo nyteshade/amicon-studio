@@ -71,7 +71,7 @@ struct LayerCanvas: View {
         Button("Send to Back") { sendToBack(l.id) }
         Divider()
         Menu("Blend") {
-            ForEach(BlendMode.allCases, id: \.self) { m in
+            ForEach(LayerBlendMode.allCases, id: \.self) { m in
                 Button(m.rawValue.capitalized) { setBlend(l.id, m) }
             }
         }
@@ -139,7 +139,7 @@ struct LayerCanvas: View {
             HStack { Text("Opacity").font(.caption); Slider(value: layer.opacity, in: 0...1) }
             HStack { Text("Size").font(.caption); Slider(value: layer.scale, in: 0.05...2) }
             Picker("Blend", selection: layer.blend) {
-                ForEach(BlendMode.allCases, id: \.self) { Text($0.rawValue.capitalized).tag($0) }
+                ForEach(LayerBlendMode.allCases, id: \.self) { Text($0.rawValue.capitalized).tag($0) }
             }
             Picker("Applies to", selection: layer.target) {
                 ForEach(EffectTarget.allCases) { Text($0.label).tag($0) }
@@ -179,7 +179,7 @@ struct LayerCanvas: View {
     // MARK: - Mutations
 
     private func setVisible(_ id: UUID, _ v: Bool) { mutate(id) { $0.visible = v } }
-    private func setBlend(_ id: UUID, _ m: BlendMode) { mutate(id) { $0.blend = m } }
+    private func setBlend(_ id: UUID, _ m: LayerBlendMode) { mutate(id) { $0.blend = m } }
     private func setTarget(_ id: UUID, _ t: EffectTarget) { mutate(id) { $0.target = t } }
     private func mutate(_ id: UUID, _ change: (inout Layer) -> Void) {
         guard let i = item.layers.firstIndex(where: { $0.id == id }) else { return }

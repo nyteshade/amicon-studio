@@ -16,7 +16,7 @@ struct Layer: Codable, Equatable, Identifiable {
     /// Longer side as a fraction of the artwork's smaller dimension.
     var scale: Double = 0.4
     var opacity: Double = 1
-    var blend: BlendMode = .normal
+    var blend: LayerBlendMode = .normal
     var visible = true
     /// Which state(s) this layer is composited onto.
     var target: EffectTarget = .both
