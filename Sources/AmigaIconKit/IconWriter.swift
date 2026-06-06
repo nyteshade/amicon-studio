@@ -224,6 +224,31 @@ public enum IconWriter {
 
     private static func clamp(_ v: Int, to margin: Int) -> Int { max(-margin, min(margin, v)) }
 
+    /// Losslessly re-serialises a previously **decoded** icon back to `.info`
+    /// bytes — useful for editing an existing icon's metadata (type, default
+    /// tool, tool types, drawer window) or its already-reduced images without
+    /// re-quantising any source artwork. Mutate the `DecodedIcon` fields first,
+    /// then call this.
+    public static func reencode(_ decoded: IconDecoder.DecodedIcon) throws -> [UInt8] {
+        func planar(_ p: IconDecoder.PlanarImageData) -> PlanarImage {
+            // PlanarImage only needs the indices + depth; the palette is unused.
+            let placeholder = [RGB](repeating: RGB(0, 0, 0), count: max(2, 1 << p.depth))
+            let idx = IndexedImage(width: p.width, height: p.height, indices: p.indices,
+                                   palette: placeholder, transparentIndex: nil)
+            return PlanarImage(idx, depth: p.depth)
+        }
+        let colorIcon = decoded.colorIconNormal.map {
+            ColorIcon(normal: $0, selected: decoded.colorIconSelected)
+        }
+        return try serialize(type: decoded.type ?? .project,
+                             defaultTool: decoded.defaultTool ?? "",
+                             toolTypes: decoded.toolTypes,
+                             drawer: decoded.drawer,
+                             planarNormal: planar(decoded.planarNormal),
+                             planarSelected: decoded.planarSelected.map(planar),
+                             colorIcon: colorIcon)
+    }
+
     // MARK: - DiskObject serialisation
 
     private static func serialize(type: IconType,

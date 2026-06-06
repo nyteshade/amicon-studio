@@ -177,6 +177,26 @@ final class IconDecoderTests: XCTestCase {
         XCTAssertNil(decoded.drawer)
     }
 
+    /// Decode → reencode → decode preserves images and metadata losslessly, and
+    /// edits to the decoded struct carry through.
+    func testReencodeRoundTripAndEdit() throws {
+        var img = RGBAImage(width: 24, height: 24)
+        for y in 0..<24 { for x in 0..<24 { img.setPixel(x, y, UInt8(x * 10), UInt8(y * 10), 70, 255) } }
+        var opts = IconOptions(); opts.type = .tool; opts.toolTypes = ["A=1"]
+        var decoded = try IconDecoder.decode(try IconWriter.build(normal: img, selected: nil, options: opts))
+
+        // Edit metadata, then reencode.
+        decoded.toolTypes = ["B=2", "C=3"]
+        let re = try IconDecoder.decode(try IconWriter.reencode(decoded))
+
+        XCTAssertEqual(re.type, .tool)
+        XCTAssertEqual(re.toolTypes, ["B=2", "C=3"])               // edit carried through
+        XCTAssertEqual(re.colorIconNormal, decoded.colorIconNormal) // images unchanged
+        XCTAssertEqual(re.colorIconSelected, decoded.colorIconSelected)
+        XCTAssertEqual(re.planarNormal.indices, decoded.planarNormal.indices)
+        XCTAssertEqual(re.planarNormal.depth, decoded.planarNormal.depth)
+    }
+
     func testBadMagicThrows() {
         XCTAssertThrowsError(try IconDecoder.decode([0x00, 0x00, 0x00, 0x00, 0x00, 0x00])) { error in
             guard case IconDecoder.DecodeError.badMagic = error else {
