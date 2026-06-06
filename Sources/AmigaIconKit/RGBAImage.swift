@@ -140,6 +140,21 @@ public extension RGBAImage {
         return out
     }
 
+    /// Blends every pixel's RGB toward `color` by `amount` (0...1), leaving alpha
+    /// untouched — a flat tint for monochrome/themed icons. Gives the kit/CLI a
+    /// recolour the app otherwise only gets via CoreImage.
+    func tinted(color: RGB, amount: Double) -> RGBAImage {
+        let a = max(0, min(1, amount))
+        guard a > 0 else { return self }
+        var out = self
+        for i in 0..<(width * height) {
+            out.pixels[i * 4]     = u8(Double(pixels[i * 4]) * (1 - a) + Double(color.r) * a)
+            out.pixels[i * 4 + 1] = u8(Double(pixels[i * 4 + 1]) * (1 - a) + Double(color.g) * a)
+            out.pixels[i * 4 + 2] = u8(Double(pixels[i * 4 + 2]) * (1 - a) + Double(color.b) * a)
+        }
+        return out
+    }
+
     /// Separable, alpha-weighted box blur of `radius` px (alpha weighting avoids
     /// dark halos bleeding from transparent areas). `radius <= 0` is a no-op.
     func boxBlurred(radius: Int) -> RGBAImage {

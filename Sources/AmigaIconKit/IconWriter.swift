@@ -66,6 +66,10 @@ public struct IconOptions {
     /// Box-blur radius applied to the source before fitting (`0` = off).
     public var blurRadius: Int = 0
 
+    /// Flat tint blended into the source (`tintAmount` 0 = off ... 1 = full).
+    public var tintColor: RGB = RGB(0, 0, 0)
+    public var tintAmount: Double = 0
+
     // --- NewIcons (experimental; off by default — see NewIcons.swift) ---
     public var writeNewIcons: Bool = false
 
@@ -195,6 +199,7 @@ public enum IconWriter {
                            quarters: options.rotateQuarters)
             : src
         if options.blurRadius > 0 { source = source.boxBlurred(radius: options.blurRadius) }
+        if options.tintAmount > 0 { source = source.tinted(color: options.tintColor, amount: options.tintAmount) }
         var img = source.fitted(maxCanvas: maxCanvas, maxContent: maxContent,
                                 preserveAspect: options.preserveAspectRatio, filter: options.resampleFilter)
         if options.posterizeLevels >= 2 { img = img.posterized(levels: options.posterizeLevels) }

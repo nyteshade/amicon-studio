@@ -50,6 +50,8 @@ struct RenderSettings: Codable, Equatable {
     var flipV = false
     var rotateQuarters = 0
     var blurRadius = 0
+    var tintColorHex = "000000"
+    var tintAmount = 0.0
 
     // Classic planar (OS1–3): smaller, as was typical
     var planarCanvas = 40
@@ -90,6 +92,8 @@ struct RenderSettings: Codable, Equatable {
         o.flipVertical = flipV
         o.rotateQuarters = rotateQuarters
         o.blurRadius = blurRadius
+        if let c = RGB(hex: tintColorHex) { o.tintColor = c }
+        o.tintAmount = tintAmount
         o.planarCanvasSize = planarCanvas
         o.planarContentSize = planarContent
         o.planarPalette = palette
@@ -159,6 +163,8 @@ extension RenderSettings {
         flipV = try c.decodeIfPresent(Bool.self, forKey: .flipV) ?? d.flipV
         rotateQuarters = try c.decodeIfPresent(Int.self, forKey: .rotateQuarters) ?? d.rotateQuarters
         blurRadius = try c.decodeIfPresent(Int.self, forKey: .blurRadius) ?? d.blurRadius
+        tintColorHex = try c.decodeIfPresent(String.self, forKey: .tintColorHex) ?? d.tintColorHex
+        tintAmount = try c.decodeIfPresent(Double.self, forKey: .tintAmount) ?? d.tintAmount
         planarCanvas   = try c.decodeIfPresent(Int.self, forKey: .planarCanvas) ?? d.planarCanvas
         planarContent  = try c.decodeIfPresent(Int.self, forKey: .planarContent) ?? d.planarContent
         palette        = try c.decodeIfPresent(WorkbenchPalette.self, forKey: .palette) ?? d.palette

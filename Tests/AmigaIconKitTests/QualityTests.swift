@@ -161,6 +161,13 @@ final class QualityTests: XCTestCase {
         XCTAssertEqual(s.pixel(0, 0).a, 0)   // elsewhere transparent
     }
 
+    func testTintBlendsTowardColor() {
+        let black = RGBAImage(width: 1, height: 1, pixels: [0, 0, 0, 255])
+        XCTAssertEqual(black.tinted(color: RGB(255, 0, 0), amount: 0.5).pixel(0, 0).r, 128) // halfway
+        let full = black.tinted(color: RGB(255, 0, 0), amount: 1).pixel(0, 0)
+        XCTAssertEqual(full.r, 255); XCTAssertEqual(full.a, 255) // alpha preserved
+    }
+
     func testBoxBlurSpreads() {
         var img = RGBAImage(width: 5, height: 5)
         img.setPixel(2, 2, 255, 255, 255, 255)

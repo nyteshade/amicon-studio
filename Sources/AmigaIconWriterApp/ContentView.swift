@@ -292,6 +292,12 @@ struct OutputSettingsView: View {
                         }
                     }
                     Stepper("Blur: \(settings.blurRadius)px", value: $settings.blurRadius, in: 0...12)
+                    HStack {
+                        Text("Tint").font(.caption)
+                        ColorPicker("", selection: hexColorBinding(\.tintColorHex), supportsOpacity: false)
+                            .labelsHidden()
+                        Slider(value: $settings.tintAmount, in: 0...1)
+                    }
                 }
 
                 Group {
