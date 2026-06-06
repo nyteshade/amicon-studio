@@ -161,6 +161,38 @@ final class QualityTests: XCTestCase {
         XCTAssertEqual(s.pixel(0, 0).a, 0)   // elsewhere transparent
     }
 
+    /// The whole effect pipeline stacked at once must build and decode cleanly —
+    /// regression cover for the order of orientation → blur → tint → fit →
+    /// posterize → outline → shadows across planar + GlowIcon.
+    func testFullEffectStackBuildsAndDecodes() throws {
+        var img = RGBAImage(width: 40, height: 28)
+        for y in 0..<28 { for x in 0..<40 {
+            let a: UInt8 = (x + y) % 5 == 0 ? 0 : 255 // some transparency
+            img.setPixel(x, y, UInt8(x * 6 % 256), UInt8(y * 9 % 256), 90, a)
+        } }
+        var o = IconOptions()
+        o.type = .drawer
+        o.drawerData = DrawerInfo()
+        o.preserveAspectRatio = true
+        o.flipHorizontal = true
+        o.rotateQuarters = 1
+        o.blurRadius = 1
+        o.tintColor = RGB(0, 128, 255); o.tintAmount = 0.3
+        o.posterizeLevels = 6
+        o.outlineThickness = 2
+        o.shadows = [Shadow(kind: .outer, dx: 2, dy: 2, color: RGB(0, 0, 0), alpha: 160, blur: 2),
+                     Shadow(kind: .inner, dx: 1, dy: 1, color: RGB(255, 255, 255), alpha: 120, blur: 1)]
+        o.toolTypes = ["X=1"]
+
+        let decoded = try IconDecoder.decode(try IconWriter.build(normal: img, selected: nil, options: o))
+        XCTAssertEqual(decoded.type, .drawer)
+        XCTAssertNotNil(decoded.drawer)
+        XCTAssertTrue(decoded.hasColorIcon)
+        XCTAssertEqual(decoded.toolTypes, ["X=1"])
+        let n = decoded.colorIconNormal!
+        XCTAssertEqual(n.indices.count, n.width * n.height)
+    }
+
     func testTintBlendsTowardColor() {
         let black = RGBAImage(width: 1, height: 1, pixels: [0, 0, 0, 255])
         XCTAssertEqual(black.tinted(color: RGB(255, 0, 0), amount: 0.5).pixel(0, 0).r, 128) // halfway
