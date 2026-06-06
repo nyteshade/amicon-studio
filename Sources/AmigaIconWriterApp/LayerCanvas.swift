@@ -72,6 +72,7 @@ struct LayerCanvas: View {
         Button("Send Backward") { move(byID: l.id, -1) }
         Button("Send to Back") { sendToBack(l.id) }
         Divider()
+        Button("Reset Position & Size") { mutate(l.id) { $0.x = 0.5; $0.y = 0.5; $0.scale = 0.4 } }
         Menu("Blend") {
             ForEach(LayerBlendMode.allCases, id: \.self) { m in
                 Button(m.rawValue.capitalized) { setBlend(l.id, m) }
@@ -160,6 +161,12 @@ struct LayerCanvas: View {
                     Button { item.layers[idx].visible.toggle() } label: {
                         Image(systemName: l.visible ? "eye" : "eye.slash")
                     }.buttonStyle(.borderless)
+                    if let thumb = NSImage(data: l.png) {
+                        Image(nsImage: thumb).resizable().interpolation(.high).scaledToFit()
+                            .frame(width: 22, height: 22)
+                            .background(RoundedRectangle(cornerRadius: 3).fill(Color.secondary.opacity(0.12)))
+                            .opacity(l.visible ? 1 : 0.4)
+                    }
                     if renamingID == l.id {
                         TextField("Name", text: $item.layers[idx].name)
                             .textFieldStyle(.roundedBorder).frame(maxWidth: 130)
