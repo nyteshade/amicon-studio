@@ -235,19 +235,60 @@ public extension RGBAImage {
     /// shape, shifted by the offset, no longer covers itself). Stays within the
     /// silhouette, so it needs no margin.
     func innerShadow(dx: Int, dy: Int, color: (r: UInt8, g: UInt8, b: UInt8) = (0, 0, 0),
-                     alpha: UInt8 = 128, alphaThreshold: UInt8 = 128) -> RGBAImage {
+                     alpha: UInt8 = 128, blur: Int = 0, alphaThreshold: UInt8 = 128) -> RGBAImage {
         guard (dx != 0 || dy != 0), alpha > 0 else { return self }
-        var layer = RGBAImage(width: width, height: height)
-        for y in 0..<height {
-            for x in 0..<width {
-                guard pixel(x, y).a >= alphaThreshold else { continue } // inside the shape only
+        let w = width, h = height
+        // The hard inner band: in-shape pixels whose back-shifted source is outside.
+        var band = [Bool](repeating: false, count: w * h)
+        for y in 0..<h {
+            for x in 0..<w {
+                guard pixel(x, y).a >= alphaThreshold else { continue }
                 let sx = x - dx, sy = y - dy
-                let srcOpaque = sx >= 0 && sx < width && sy >= 0 && sy < height
-                    && pixel(sx, sy).a >= alphaThreshold
-                if !srcOpaque { layer.setPixel(x, y, color.r, color.g, color.b, alpha) }
+                let srcOpaque = sx >= 0 && sx < w && sy >= 0 && sy < h && pixel(sx, sy).a >= alphaThreshold
+                if !srcOpaque { band[y * w + x] = true }
+            }
+        }
+        var layer = RGBAImage(width: w, height: h)
+        if blur <= 0 {
+            for i in 0..<(w * h) where band[i] {
+                layer.pixels[i * 4] = color.r; layer.pixels[i * 4 + 1] = color.g
+                layer.pixels[i * 4 + 2] = color.b; layer.pixels[i * 4 + 3] = alpha
+            }
+        } else {
+            let dist = Self.distanceTransform(band, width: w, height: h)
+            for y in 0..<h {
+                for x in 0..<w {
+                    let i = y * w + x
+                    guard pixel(x, y).a >= alphaThreshold else { continue } // clip to the shape
+                    let d = dist[i]
+                    let a: Double
+                    if d == 0 { a = Double(alpha) }
+                    else if d <= blur { a = Double(alpha) * Double(blur - d + 1) / Double(blur + 1) }
+                    else { continue }
+                    layer.setPixel(x, y, color.r, color.g, color.b, u8(a))
+                }
             }
         }
         return blending(layer, atX: 0, atY: 0)
+    }
+
+    /// City-block distance from every pixel to the nearest `true` seed, via a
+    /// two-pass approximate transform. Shared by the glow/outline/shadow effects.
+    static func distanceTransform(_ seeds: [Bool], width w: Int, height h: Int) -> [Int] {
+        let big = w + h + 1
+        var dist = [Int](repeating: big, count: w * h)
+        for i in 0..<(w * h) where seeds[i] { dist[i] = 0 }
+        for y in 0..<h { for x in 0..<w {
+            let i = y * w + x
+            if x > 0 { dist[i] = min(dist[i], dist[i - 1] + 1) }
+            if y > 0 { dist[i] = min(dist[i], dist[i - w] + 1) }
+        } }
+        for y in stride(from: h - 1, through: 0, by: -1) { for x in stride(from: w - 1, through: 0, by: -1) {
+            let i = y * w + x
+            if x < w - 1 { dist[i] = min(dist[i], dist[i + 1] + 1) }
+            if y < h - 1 { dist[i] = min(dist[i], dist[i + w] + 1) }
+        } }
+        return dist
     }
 
     /// Composites `top` over a copy of this image using source-over alpha

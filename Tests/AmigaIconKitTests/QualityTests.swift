@@ -189,6 +189,16 @@ final class QualityTests: XCTestCase {
         XCTAssertEqual(layer.pixel(7, 4).a, 0)               // beyond blur → nothing
     }
 
+    func testInnerShadowBlurFeathers() {
+        var img = RGBAImage(width: 8, height: 8)
+        for y in 1..<7 { for x in 1..<7 { img.setPixel(x, y, 255, 255, 255, 255) } } // 6×6 block
+        let s = img.innerShadow(dx: 1, dy: 1, color: (0, 0, 0), alpha: 255, blur: 2)
+        XCTAssertEqual(s.pixel(1, 1).r, 0)              // hard band on the leading edge
+        let mid = s.pixel(2, 2).r                        // one step in → feathered
+        XCTAssertTrue(mid > 0 && mid < 255)
+        XCTAssertEqual(s.pixel(4, 4).r, 255)             // deep interior untouched
+    }
+
     /// Two outer shadows via the build options both end up in the icon (their
     /// colour appears), and they're cast from the same silhouette.
     func testMultipleOuterShadowsInBuild() throws {

@@ -217,7 +217,7 @@ public enum IconWriter {
         }
         for s in shadows where s.kind == .inner {
             out = out.innerShadow(dx: s.dx, dy: s.dy,
-                                  color: (s.color.r, s.color.g, s.color.b), alpha: s.alpha)
+                                  color: (s.color.r, s.color.g, s.color.b), alpha: s.alpha, blur: s.blur)
         }
         return out
     }

@@ -382,9 +382,7 @@ struct ShadowsEditor: View {
                         Stepper("X \(s.dx)", value: $s.dx, in: -16...16)
                         Stepper("Y \(s.dy)", value: $s.dy, in: -16...16)
                     }
-                    if s.kind == .outer {
-                        Stepper("Blur \(s.blur)px", value: $s.blur, in: 0...12)
-                    }
+                    Stepper("Blur \(s.blur)px", value: $s.blur, in: 0...12)
                     HStack { Text("Opacity").font(.caption); Slider(value: alphaBinding($s), in: 0...1) }
                 }
                 .padding(6)
