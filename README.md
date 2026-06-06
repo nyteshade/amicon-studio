@@ -192,8 +192,9 @@ sandboxing, and a distributable bundle):
 - **Leading sidebar** — *tools*: a palette of CoreImage effects (brightness,
   contrast, saturation, hue, sepia, monochrome, invert, bloom, sharpen,
   vignette) you can stack onto the artwork, plus *Output Settings* (icon type,
-  GlowIcon canvas/artwork sizes, max colours, glow colour & radius, planar
-  size & palette, dithering & scaling, and the **default tool / tool types**).
+  GlowIcon canvas/artwork sizes, max colours, glow colour & radius, a solid
+  **outline**, planar size & palette, dithering & scaling, and the **default
+  tool / tool types**).
 - Effects are applied **non-destructively**: the project keeps the **original
   dropped images at full resolution**, so you can change target sizes or
   effects at any time and re-render without quality loss (CandyBar-style).

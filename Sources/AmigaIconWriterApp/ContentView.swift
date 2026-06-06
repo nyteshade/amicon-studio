@@ -271,6 +271,15 @@ struct OutputSettingsView: View {
                 }
 
                 Group {
+                    Text("Outline").font(.caption.weight(.semibold))
+                    Stepper("Thickness: \(settings.outlineThickness)px", value: $settings.outlineThickness, in: 0...16)
+                    if settings.outlineThickness > 0 {
+                        ColorPicker("Outline colour", selection: hexColorBinding(\.outlineColorHex),
+                                    supportsOpacity: false)
+                    }
+                }
+
+                Group {
                     Text("Planar (OS1–3 fallback)").font(.caption.weight(.semibold))
                     Stepper("Canvas: \(settings.planarCanvas)px", value: $settings.planarCanvas, in: 8...256)
                     Stepper("Artwork: \(settings.planarContent)px", value: $settings.planarContent, in: 8...256)
@@ -314,6 +323,24 @@ struct OutputSettingsView: View {
                 let ns = NSColor(newColor).usingColorSpace(.deviceRGB) ?? .orange
                 let rgb = RGB(UInt8(ns.redComponent * 255), UInt8(ns.greenComponent * 255), UInt8(ns.blueComponent * 255))
                 settings.glowColorHex = rgb.hexString
+            }
+        )
+    }
+
+    /// A `Color` binding backed by a `RRGGBB` hex string field on the settings.
+    private func hexColorBinding(_ keyPath: WritableKeyPath<RenderSettings, String>) -> Binding<Color> {
+        Binding(
+            get: {
+                if let rgb = RGB(hex: settings[keyPath: keyPath]) {
+                    return Color(red: Double(rgb.r) / 255, green: Double(rgb.g) / 255, blue: Double(rgb.b) / 255)
+                }
+                return .black
+            },
+            set: { newColor in
+                let ns = NSColor(newColor).usingColorSpace(.deviceRGB) ?? .black
+                settings[keyPath: keyPath] = RGB(UInt8(ns.redComponent * 255),
+                                                 UInt8(ns.greenComponent * 255),
+                                                 UInt8(ns.blueComponent * 255)).hexString
             }
         )
     }

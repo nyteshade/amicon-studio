@@ -137,6 +137,20 @@ final class QualityTests: XCTestCase {
         XCTAssertEqual(o.pixel(0, 0).a, 0)          // far pixel stays transparent
     }
 
+    /// The outline option introduces its colour into the built icon's palette.
+    func testOutlineOptionAppliedInBuild() throws {
+        var img = RGBAImage(width: 16, height: 16) // white block with transparent margin
+        for y in 6..<10 { for x in 6..<10 { img.setPixel(x, y, 255, 255, 255, 255) } }
+        func paletteHasRed(_ opts: IconOptions) throws -> Bool {
+            let decoded = try IconDecoder.decode(try IconWriter.build(normal: img, selected: nil, options: opts))
+            return decoded.colorIconNormal!.palette.contains { $0.r > 200 && $0.g < 60 && $0.b < 60 }
+        }
+        var on = IconOptions(); on.autoGlow = false; on.outlineThickness = 2; on.outlineColor = RGB(255, 0, 0)
+        var off = IconOptions(); off.autoGlow = false
+        XCTAssertTrue(try paletteHasRed(on))
+        XCTAssertFalse(try paletteHasRed(off))
+    }
+
     // MARK: - Non-square canvas (preserve aspect)
 
     /// A wide source with `preserveAspectRatio` yields a non-square canvas that

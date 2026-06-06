@@ -35,6 +35,10 @@ struct RenderSettings: Codable, Equatable {
     var glowRadius = 3
     var glowColorHex = "FF8B00"
 
+    // Outline (solid stroke around the artwork; 0 = off)
+    var outlineThickness = 0
+    var outlineColorHex = "000000"
+
     // Classic planar (OS1–3): smaller, as was typical
     var planarCanvas = 40
     var planarContent = 36
@@ -66,6 +70,8 @@ struct RenderSettings: Codable, Equatable {
         o.autoGlow = autoGlow
         o.glowRadius = glowRadius
         if let c = RGB(hex: glowColorHex) { o.glowColor = c }
+        o.outlineThickness = outlineThickness
+        if let c = RGB(hex: outlineColorHex) { o.outlineColor = c }
         o.planarCanvasSize = planarCanvas
         o.planarContentSize = planarContent
         o.planarPalette = palette
@@ -127,6 +133,8 @@ extension RenderSettings {
         autoGlow       = try c.decodeIfPresent(Bool.self, forKey: .autoGlow) ?? d.autoGlow
         glowRadius     = try c.decodeIfPresent(Int.self, forKey: .glowRadius) ?? d.glowRadius
         glowColorHex   = try c.decodeIfPresent(String.self, forKey: .glowColorHex) ?? d.glowColorHex
+        outlineThickness = try c.decodeIfPresent(Int.self, forKey: .outlineThickness) ?? d.outlineThickness
+        outlineColorHex  = try c.decodeIfPresent(String.self, forKey: .outlineColorHex) ?? d.outlineColorHex
         planarCanvas   = try c.decodeIfPresent(Int.self, forKey: .planarCanvas) ?? d.planarCanvas
         planarContent  = try c.decodeIfPresent(Int.self, forKey: .planarContent) ?? d.planarContent
         palette        = try c.decodeIfPresent(WorkbenchPalette.self, forKey: .palette) ?? d.palette

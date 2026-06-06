@@ -76,6 +76,10 @@ GLOW (clicked state, when --selected is not given):
   --glow-radius <n>      Glow thickness in pixels (default 3)
   --glow-color <hex>     RRGGBB (default FF8B00)
 
+OUTLINE (solid stroke around the artwork):
+  --outline-width <n>    Outline thickness in pixels (0 = off, default 0)
+  --outline-color <hex>  RRGGBB (default 000000)
+
 QUALITY (colour reduction):
   --resample <m>         Scaling filter: smooth | nearest  (default smooth)
   --dither <m>           Planar dithering: fs | none       (default fs)
@@ -135,6 +139,9 @@ while !args.isEmpty {
     case "--glow-radius": options.glowRadius = Int(nextValue(arg)) ?? options.glowRadius
     case "--glow-color":
         if let rgb = parseHexColor(nextValue(arg)) { options.glowColor = rgb }
+    case "--outline-width": options.outlineThickness = max(0, Int(nextValue(arg)) ?? 0)
+    case "--outline-color":
+        if let rgb = parseHexColor(nextValue(arg)) { options.outlineColor = rgb }
     case "--newicons": options.writeNewIcons = true
     default: fail("unknown argument: \(arg)")
     }

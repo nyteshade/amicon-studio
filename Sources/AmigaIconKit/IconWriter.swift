@@ -45,6 +45,12 @@ public struct IconOptions {
     public var glowRadius: Int = 3
     public var glowColor: RGB = RGB(0xFF, 0x8B, 0x00) // warm GlowIcon orange
 
+    // --- Outline (solid stroke hugging the artwork) ---
+    /// Outline thickness in pixels; `0` disables it. Drawn behind the art in the
+    /// canvas margin (clamp to the margin to avoid clipping).
+    public var outlineThickness: Int = 0
+    public var outlineColor: RGB = RGB(0, 0, 0)
+
     // --- NewIcons (experimental; off by default — see NewIcons.swift) ---
     public var writeNewIcons: Bool = false
 
@@ -81,10 +87,8 @@ public enum IconWriter {
         // explicitly (classic icons usually rely on colour-complement highlight).
         var planarSelectedImg: PlanarImage?
         if let sel = selected {
-            let rgba = sel.fitted(maxCanvas: options.planarCanvasSize,
-                                  maxContent: options.planarContentSize,
-                                  preserveAspect: options.preserveAspectRatio,
-                                  filter: options.resampleFilter)
+            let rgba = composed(sel, maxCanvas: options.planarCanvasSize,
+                                maxContent: options.planarContentSize, options: options)
             let mapped = ColorQuantizer.mapReserving(rgba, reserved: wb.systemPens,
                                                       totalColors: wb.totalColors,
                                                       dither: options.planarDither)
@@ -94,18 +98,14 @@ public enum IconWriter {
         // ---- ColorIcon / GlowIcon --------------------------------------
         var colorIcon: ColorIcon?
         if options.writeColorIcon {
-            let normRGBA = normal.fitted(maxCanvas: options.colorCanvasSize,
-                                         maxContent: options.colorContentSize,
-                                         preserveAspect: options.preserveAspectRatio,
-                                         filter: options.resampleFilter)
+            let normRGBA = composed(normal, maxCanvas: options.colorCanvasSize,
+                                    maxContent: options.colorContentSize, options: options)
             let normIndexed = ColorQuantizer.quantize(normRGBA, maxColors: options.colorMaxColors)
 
             let selRGBA: RGBAImage?
             if let sel = selected {
-                selRGBA = sel.fitted(maxCanvas: options.colorCanvasSize,
-                                     maxContent: options.colorContentSize,
-                                     preserveAspect: options.preserveAspectRatio,
-                                     filter: options.resampleFilter)
+                selRGBA = composed(sel, maxCanvas: options.colorCanvasSize,
+                                   maxContent: options.colorContentSize, options: options)
             } else if options.autoGlow {
                 // Glow may not exceed the margin, or it would be clipped.
                 let margin = (options.colorCanvasSize - options.colorContentSize) / 2
@@ -124,8 +124,8 @@ public enum IconWriter {
         var toolTypes = options.toolTypes
         if options.writeNewIcons {
             let normIndexed = ColorQuantizer.quantize(
-                normal.fitted(maxCanvas: options.colorCanvasSize, maxContent: options.colorContentSize,
-                              preserveAspect: options.preserveAspectRatio, filter: options.resampleFilter),
+                composed(normal, maxCanvas: options.colorCanvasSize,
+                         maxContent: options.colorContentSize, options: options),
                 maxColors: 256)
             let newIconLines = NewIcons.encode(normal: normIndexed, selected: nil)
             toolTypes = newIconLines + toolTypes
@@ -144,13 +144,26 @@ public enum IconWriter {
     /// state. Exposed so a UI can preview the exact planar result (which pens the
     /// artwork reduced to) without re-deriving the pipeline.
     public static func planarIndexed(for normal: RGBAImage, options: IconOptions) -> IndexedImage {
-        let composed = normal.fitted(maxCanvas: options.planarCanvasSize,
-                                     maxContent: options.planarContentSize,
-                                     preserveAspect: options.preserveAspectRatio,
-                                     filter: options.resampleFilter)
         let wb = options.planarPalette
-        return ColorQuantizer.mapReserving(composed, reserved: wb.systemPens, totalColors: wb.totalColors,
+        let rgba = composed(normal, maxCanvas: options.planarCanvasSize,
+                            maxContent: options.planarContentSize, options: options)
+        return ColorQuantizer.mapReserving(rgba, reserved: wb.systemPens, totalColors: wb.totalColors,
                                            dither: options.planarDither)
+    }
+
+    /// Fits `src` into the icon canvas and applies the optional solid outline.
+    private static func composed(_ src: RGBAImage, maxCanvas: Int, maxContent: Int,
+                                 options: IconOptions) -> RGBAImage {
+        var img = src.fitted(maxCanvas: maxCanvas, maxContent: maxContent,
+                             preserveAspect: options.preserveAspectRatio, filter: options.resampleFilter)
+        if options.outlineThickness > 0 {
+            // Clamp to the available margin so the stroke isn't clipped at the edge.
+            let margin = max(1, (maxCanvas - maxContent) / 2)
+            let t = min(options.outlineThickness, margin)
+            img = img.outlined(color: (options.outlineColor.r, options.outlineColor.g, options.outlineColor.b),
+                               thickness: t)
+        }
+        return img
     }
 
     // MARK: - DiskObject serialisation
