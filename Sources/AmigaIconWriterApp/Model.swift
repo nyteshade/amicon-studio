@@ -23,8 +23,9 @@ struct RenderSettings: Codable, Equatable {
     // Classic planar (OS1–3): smaller, as was typical
     var planarCanvas = 40
     var planarContent = 36
-    /// A `WorkbenchPalette` preset id (see `WorkbenchPalette.presets`).
-    var paletteName = WorkbenchPalette.workbench2_4.id
+    /// The Workbench pen set used for the planar fallback — a named preset or an
+    /// edited custom palette (its exact pen RGBs are stored with the project).
+    var palette: WorkbenchPalette = .workbench2_4
 
     // Image quality
     var resample: ResampleFilter = .smooth
@@ -48,7 +49,7 @@ struct RenderSettings: Codable, Equatable {
         if let c = RGB(hex: glowColorHex) { o.glowColor = c }
         o.planarCanvasSize = planarCanvas
         o.planarContentSize = planarContent
-        o.planarPalette = WorkbenchPalette.resolve(paletteName)
+        o.planarPalette = palette
         o.resampleFilter = resample
         o.planarDither = planarDither
         o.writeNewIcons = writeNewIcons

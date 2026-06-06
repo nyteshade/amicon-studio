@@ -236,11 +236,7 @@ struct OutputSettingsView: View {
                     Text("Planar (OS1–3 fallback)").font(.caption.weight(.semibold))
                     Stepper("Canvas: \(settings.planarCanvas)px", value: $settings.planarCanvas, in: 8...256)
                     Stepper("Artwork: \(settings.planarContent)px", value: $settings.planarContent, in: 8...256)
-                    Picker("Palette", selection: $settings.paletteName) {
-                        ForEach(WorkbenchPalette.presets) { wb in
-                            Text(wb.name).tag(wb.id)
-                        }
-                    }
+                    PaletteEditor(palette: $settings.palette)
                     Toggle("Dither (Floyd–Steinberg)", isOn: Binding(
                         get: { settings.planarDither == .floydSteinberg },
                         set: { settings.planarDither = $0 ? .floydSteinberg : .none }))
@@ -326,8 +322,7 @@ struct PlanarFallbackPreview: View {
     let settings: RenderSettings
 
     private var caption: String {
-        let palette = WorkbenchPalette.resolve(settings.paletteName).name
-        return "\(settings.planarCanvas)×\(settings.planarCanvas) · \(palette)"
+        "\(settings.planarCanvas)×\(settings.planarCanvas) · \(settings.palette.name)"
     }
 
     var body: some View {

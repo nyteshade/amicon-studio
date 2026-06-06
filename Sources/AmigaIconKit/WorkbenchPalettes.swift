@@ -24,7 +24,7 @@ public let workbench1Palette: [RGB] = [
 /// background, gadgets, text); for richer 8/16-colour sets they must be kept
 /// exactly where they are, while any pens **above** them are free to be filled
 /// from the icon's own artwork during colour reduction.
-public struct WorkbenchPalette: Identifiable, Equatable {
+public struct WorkbenchPalette: Identifiable, Equatable, Hashable, Codable {
     public let id: String
     /// Menu label, e.g. "Workbench 3.2 (16)".
     public let name: String
@@ -41,6 +41,17 @@ public struct WorkbenchPalette: Identifiable, Equatable {
         self.systemPens = systemPens
         self.totalColors = max(systemPens.count, totalColors)
     }
+
+    /// Upper bound on reserved pens (a screen offers at most 256 pens).
+    static let maxPens = 256
+
+    /// A user-defined palette (not one of the named presets).
+    public static func custom(systemPens: [RGB], totalColors: Int) -> WorkbenchPalette {
+        WorkbenchPalette(id: "custom", name: "Custom", systemPens: systemPens, totalColors: totalColors)
+    }
+
+    /// Whether this palette has been edited away from a named preset.
+    public var isCustom: Bool { id == "custom" }
 
     /// Number of leading pens that are fixed system pens.
     public var reservedCount: Int { systemPens.count }

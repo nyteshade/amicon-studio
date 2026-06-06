@@ -3,7 +3,7 @@ import Foundation
 /// An RGB colour, 8 bits per component, as stored in an Amiga icon palette.
 /// (ColorIcon palettes are full 24-bit RGB — this is where "24-bit RGB icons"
 /// comes from; the image itself is still palette-indexed, up to 256 entries.)
-public struct RGB: Equatable, Hashable {
+public struct RGB: Equatable, Hashable, Codable {
     public var r: UInt8
     public var g: UInt8
     public var b: UInt8

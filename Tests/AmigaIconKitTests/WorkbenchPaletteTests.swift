@@ -63,6 +63,44 @@ final class WorkbenchPaletteTests: XCTestCase {
         XCTAssertLessThan(decoded.planarNormal.indices.max() ?? 0, 16)
     }
 
+    // MARK: - Custom palettes
+
+    func testCustomFactory() {
+        let p = WorkbenchPalette.custom(systemPens: [RGB(1, 2, 3), RGB(4, 5, 6)], totalColors: 8)
+        XCTAssertTrue(p.isCustom)
+        XCTAssertEqual(p.reservedCount, 2)
+        XCTAssertEqual(p.totalColors, 8)
+        XCTAssertEqual(p.depth, 3)
+        XCTAssertFalse(WorkbenchPalette.magicWB_8.isCustom)
+    }
+
+    /// A custom palette must survive Codable round-tripping (it is stored in the
+    /// project document).
+    func testPaletteCodableRoundTrip() throws {
+        let p = WorkbenchPalette.custom(systemPens: [RGB(10, 20, 30), RGB(200, 0, 0)], totalColors: 16)
+        let back = try JSONDecoder().decode(WorkbenchPalette.self,
+                                            from: try JSONEncoder().encode(p))
+        XCTAssertEqual(back, p)
+        XCTAssertTrue(back.isCustom)
+        XCTAssertEqual(back.systemPens, [RGB(10, 20, 30), RGB(200, 0, 0)])
+    }
+
+    /// A custom pen set drives the planar reduction in a build.
+    func testCustomPaletteUsedByBuild() throws {
+        let red = RGB(255, 0, 0), green = RGB(0, 255, 0)
+        var opts = IconOptions()
+        opts.planarPalette = .custom(systemPens: [red, green], totalColors: 2)
+        opts.writeColorIcon = false
+        let img = RGBAImage(width: 8, height: 8, pixels: { var p = [UInt8](repeating: 0, count: 8 * 8 * 4)
+            for i in 0..<(8 * 8) { p[i * 4] = 255; p[i * 4 + 3] = 255 }; return p }()) // all opaque red
+
+        let decoded = try IconDecoder.decode(try IconWriter.build(normal: img, selected: nil, options: opts))
+        XCTAssertEqual(decoded.planarNormal.depth, 1) // two pens -> 1 bitplane
+        let rgba = decoded.planarNormal.rgba(palette: [red, green])
+        XCTAssertEqual(rgba.pixel(0, 0).r, 255)
+        XCTAssertEqual(rgba.pixel(0, 0).g, 0)
+    }
+
     /// WB 1.x uses its own four pens, distinct from the grey 2.x set.
     func testWorkbench1IsDistinct() {
         XCTAssertNotEqual(WorkbenchPalette.workbench1_4.systemPens, workbench4Palette)

@@ -52,6 +52,11 @@ upper 8 pens are generated from the artwork during reduction. Pick the set in
 the CLI with `--palette` (`wb1`/`wb2`/`wb32-8`/`wb32-16`/`mwb8`/`mwb16`) or in
 the app's *Output Settings*.
 
+The app's **palette editor** (in *Output Settings*) lets you start from a preset
+and then tweak the exact pen RGBs, add/remove reserved pens, and set the total
+colour count — handy if you target a specific release's prefs. Any edit becomes
+a **Custom** palette whose pens are saved with the project, per icon.
+
 Reduction quality is controlled by two more knobs (both on by default):
 **scaling** uses alpha-weighted area-averaging when shrinking photos to icon
 size (`--resample smooth|nearest`), and the planar reduction uses
