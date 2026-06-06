@@ -12,12 +12,12 @@ extension RGBAImage {
     }
 }
 
-private let sharedCIContext = CIContext(options: [.workingColorSpace: NSNull()])
-
 /// Bridges the app's stored originals to AmigaIconKit for both live preview and
 /// `.info` export. All composition (centre-in-canvas, glow) is driven by the
 /// item's `RenderSettings` and always works from the full-resolution originals.
 enum IconRenderer {
+
+    private static let sharedCIContext = CIContext(options: [.workingColorSpace: NSNull()])
 
     /// Accurate preview images for the unclicked/clicked states **and** the
     /// classic planar fallback.
