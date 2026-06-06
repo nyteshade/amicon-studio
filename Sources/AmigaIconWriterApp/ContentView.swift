@@ -280,13 +280,8 @@ struct OutputSettingsView: View {
                 }
 
                 Group {
-                    Text("Drop shadow").font(.caption.weight(.semibold))
-                    Stepper("Offset: \(settings.shadowOffset)px", value: $settings.shadowOffset, in: 0...16)
-                    if settings.shadowOffset > 0 {
-                        ColorPicker("Shadow colour", selection: hexColorBinding(\.shadowColorHex),
-                                    supportsOpacity: false)
-                        HStack { Text("Opacity"); Slider(value: $settings.shadowOpacity, in: 0...1) }
-                    }
+                    Text("Shadows").font(.caption.weight(.semibold))
+                    ShadowsEditor(shadows: $settings.shadows)
                 }
 
                 Group {
@@ -353,6 +348,59 @@ struct OutputSettingsView: View {
                                                  UInt8(ns.blueComponent * 255)).hexString
             }
         )
+    }
+}
+
+/// Editable list of shadows (outer/inner), each with offset, colour and opacity.
+struct ShadowsEditor: View {
+    @Binding var shadows: [Shadow]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Drop & inner shadows").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                Spacer()
+                Button { shadows.append(Shadow()) } label: { Image(systemName: "plus") }
+                    .buttonStyle(.borderless).help("Add a shadow")
+            }
+            ForEach($shadows) { $s in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Picker("", selection: $s.kind) {
+                            ForEach(Shadow.Kind.allCases, id: \.self) { Text($0.rawValue.capitalized).tag($0) }
+                        }
+                        .labelsHidden().frame(width: 96)
+                        Spacer()
+                        ColorPicker("", selection: colorBinding($s), supportsOpacity: false).labelsHidden()
+                        Button { shadows.removeAll { $0.id == s.id } } label: { Image(systemName: "minus.circle") }
+                            .buttonStyle(.borderless)
+                    }
+                    HStack {
+                        Stepper("X \(s.dx)", value: $s.dx, in: -16...16)
+                        Stepper("Y \(s.dy)", value: $s.dy, in: -16...16)
+                    }
+                    HStack { Text("Opacity").font(.caption); Slider(value: alphaBinding($s), in: 0...1) }
+                }
+                .padding(6)
+                .background(RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.08)))
+            }
+        }
+    }
+
+    private func colorBinding(_ s: Binding<Shadow>) -> Binding<Color> {
+        Binding(
+            get: { let c = s.wrappedValue.color
+                   return Color(red: Double(c.r) / 255, green: Double(c.g) / 255, blue: Double(c.b) / 255) },
+            set: { let ns = NSColor($0).usingColorSpace(.deviceRGB) ?? .black
+                   s.wrappedValue.color = RGB(UInt8(ns.redComponent * 255),
+                                              UInt8(ns.greenComponent * 255),
+                                              UInt8(ns.blueComponent * 255)) }
+        )
+    }
+
+    private func alphaBinding(_ s: Binding<Shadow>) -> Binding<Double> {
+        Binding(get: { Double(s.wrappedValue.alpha) / 255 },
+                set: { s.wrappedValue.alpha = UInt8(max(0, min(1, $0)) * 255) })
     }
 }
 

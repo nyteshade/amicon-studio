@@ -140,14 +140,13 @@ public extension RGBAImage {
         return out
     }
 
-    /// Returns the image with a drop shadow behind it: the opaque silhouette,
-    /// recoloured and made semi-transparent, offset by `(dx, dy)`, with the
-    /// original artwork composited back on top. Needs that much transparent
-    /// margin on the offset side or the shadow is clipped.
-    func droppingShadow(dx: Int, dy: Int, color: (r: UInt8, g: UInt8, b: UInt8) = (0, 0, 0),
-                        alpha: UInt8 = 128, alphaThreshold: UInt8 = 128) -> RGBAImage {
-        guard (dx != 0 || dy != 0), alpha > 0 else { return self }
+    /// A standalone layer (transparent except where filled) holding the opaque
+    /// silhouette recoloured at `alpha` and offset by `(dx, dy)` — the building
+    /// block for outer drop shadows. Compose it *behind* the art.
+    func shadowLayer(dx: Int, dy: Int, color: (r: UInt8, g: UInt8, b: UInt8),
+                     alpha: UInt8, alphaThreshold: UInt8 = 128) -> RGBAImage {
         var shadow = RGBAImage(width: width, height: height)
+        guard alpha > 0 else { return shadow }
         for y in 0..<height {
             for x in 0..<width {
                 let sx = x - dx, sy = y - dy
@@ -157,7 +156,37 @@ public extension RGBAImage {
                 }
             }
         }
-        return shadow.blending(self, atX: 0, atY: 0)
+        return shadow
+    }
+
+    /// Returns the image with an **outer** drop shadow behind it (silhouette
+    /// offset by `(dx, dy)`, art composited back on top). Needs that much
+    /// transparent margin on the offset side or the shadow is clipped.
+    func droppingShadow(dx: Int, dy: Int, color: (r: UInt8, g: UInt8, b: UInt8) = (0, 0, 0),
+                        alpha: UInt8 = 128, alphaThreshold: UInt8 = 128) -> RGBAImage {
+        guard (dx != 0 || dy != 0), alpha > 0 else { return self }
+        return shadowLayer(dx: dx, dy: dy, color: color, alpha: alpha, alphaThreshold: alphaThreshold)
+            .blending(self, atX: 0, atY: 0)
+    }
+
+    /// Returns the image with an **inner** shadow: a recoloured band painted on
+    /// top of the artwork along the inside edge facing `(-dx, -dy)` (where the
+    /// shape, shifted by the offset, no longer covers itself). Stays within the
+    /// silhouette, so it needs no margin.
+    func innerShadow(dx: Int, dy: Int, color: (r: UInt8, g: UInt8, b: UInt8) = (0, 0, 0),
+                     alpha: UInt8 = 128, alphaThreshold: UInt8 = 128) -> RGBAImage {
+        guard (dx != 0 || dy != 0), alpha > 0 else { return self }
+        var layer = RGBAImage(width: width, height: height)
+        for y in 0..<height {
+            for x in 0..<width {
+                guard pixel(x, y).a >= alphaThreshold else { continue } // inside the shape only
+                let sx = x - dx, sy = y - dy
+                let srcOpaque = sx >= 0 && sx < width && sy >= 0 && sy < height
+                    && pixel(sx, sy).a >= alphaThreshold
+                if !srcOpaque { layer.setPixel(x, y, color.r, color.g, color.b, alpha) }
+            }
+        }
+        return blending(layer, atX: 0, atY: 0)
     }
 
     /// Composites `top` over a copy of this image using source-over alpha

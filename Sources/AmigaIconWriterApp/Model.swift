@@ -39,10 +39,8 @@ struct RenderSettings: Codable, Equatable {
     var outlineThickness = 0
     var outlineColorHex = "000000"
 
-    // Drop shadow (offset behind the art; 0 = off)
-    var shadowOffset = 0
-    var shadowColorHex = "000000"
-    var shadowOpacity = 0.5
+    // Shadows (any number; outer and/or inner)
+    var shadows: [Shadow] = []
 
     // Classic planar (OS1–3): smaller, as was typical
     var planarCanvas = 40
@@ -77,9 +75,7 @@ struct RenderSettings: Codable, Equatable {
         if let c = RGB(hex: glowColorHex) { o.glowColor = c }
         o.outlineThickness = outlineThickness
         if let c = RGB(hex: outlineColorHex) { o.outlineColor = c }
-        o.shadowOffset = shadowOffset
-        if let c = RGB(hex: shadowColorHex) { o.shadowColor = c }
-        o.shadowAlpha = UInt8(max(0, min(1, shadowOpacity)) * 255)
+        o.shadows = shadows
         o.planarCanvasSize = planarCanvas
         o.planarContentSize = planarContent
         o.planarPalette = palette
@@ -143,9 +139,7 @@ extension RenderSettings {
         glowColorHex   = try c.decodeIfPresent(String.self, forKey: .glowColorHex) ?? d.glowColorHex
         outlineThickness = try c.decodeIfPresent(Int.self, forKey: .outlineThickness) ?? d.outlineThickness
         outlineColorHex  = try c.decodeIfPresent(String.self, forKey: .outlineColorHex) ?? d.outlineColorHex
-        shadowOffset   = try c.decodeIfPresent(Int.self, forKey: .shadowOffset) ?? d.shadowOffset
-        shadowColorHex = try c.decodeIfPresent(String.self, forKey: .shadowColorHex) ?? d.shadowColorHex
-        shadowOpacity  = try c.decodeIfPresent(Double.self, forKey: .shadowOpacity) ?? d.shadowOpacity
+        shadows        = try c.decodeIfPresent([Shadow].self, forKey: .shadows) ?? d.shadows
         planarCanvas   = try c.decodeIfPresent(Int.self, forKey: .planarCanvas) ?? d.planarCanvas
         planarContent  = try c.decodeIfPresent(Int.self, forKey: .planarContent) ?? d.planarContent
         palette        = try c.decodeIfPresent(WorkbenchPalette.self, forKey: .palette) ?? d.palette

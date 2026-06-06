@@ -161,6 +161,29 @@ final class QualityTests: XCTestCase {
         XCTAssertEqual(s.pixel(0, 0).a, 0)   // elsewhere transparent
     }
 
+    func testInnerShadowDarkensLeadingEdge() {
+        var img = RGBAImage(width: 8, height: 8)
+        for y in 2..<6 { for x in 2..<6 { img.setPixel(x, y, 255, 255, 255, 255) } } // 4×4 white block
+        let s = img.innerShadow(dx: 1, dy: 1, color: (0, 0, 0), alpha: 255)
+        XCTAssertEqual(s.pixel(2, 2).r, 0)   // top-left inner edge shadowed
+        XCTAssertEqual(s.pixel(4, 4).r, 255) // interior untouched
+        XCTAssertEqual(s.pixel(0, 0).a, 0)   // outside the shape transparent
+    }
+
+    /// Two outer shadows via the build options both end up in the icon (their
+    /// colour appears), and they're cast from the same silhouette.
+    func testMultipleOuterShadowsInBuild() throws {
+        var img = RGBAImage(width: 16, height: 16)
+        for y in 6..<10 { for x in 6..<10 { img.setPixel(x, y, 255, 255, 255, 255) } }
+        var opts = IconOptions(); opts.autoGlow = false
+        opts.shadows = [Shadow(kind: .outer, dx: 2, dy: 2, color: RGB(255, 0, 0), alpha: 220),
+                        Shadow(kind: .inner, dx: 1, dy: 1, color: RGB(0, 0, 255), alpha: 255)]
+        let decoded = try IconDecoder.decode(try IconWriter.build(normal: img, selected: nil, options: opts))
+        let pal = decoded.colorIconNormal!.palette
+        XCTAssertTrue(pal.contains { $0.r > 180 && $0.g < 70 && $0.b < 70 }) // outer red present
+        XCTAssertTrue(pal.contains { $0.b > 180 && $0.r < 70 && $0.g < 70 }) // inner blue present
+    }
+
     // MARK: - Non-square canvas (preserve aspect)
 
     /// A wide source with `preserveAspectRatio` yields a non-square canvas that

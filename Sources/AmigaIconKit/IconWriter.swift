@@ -51,11 +51,8 @@ public struct IconOptions {
     public var outlineThickness: Int = 0
     public var outlineColor: RGB = RGB(0, 0, 0)
 
-    // --- Drop shadow (offset semi-transparent silhouette behind the art) ---
-    /// Shadow offset (down-right) in pixels; `0` disables it.
-    public var shadowOffset: Int = 0
-    public var shadowColor: RGB = RGB(0, 0, 0)
-    public var shadowAlpha: UInt8 = 128
+    // --- Shadows (any number, outer and/or inner), applied in order ---
+    public var shadows: [Shadow] = []
 
     // --- NewIcons (experimental; off by default — see NewIcons.swift) ---
     public var writeNewIcons: Bool = false
@@ -69,6 +66,25 @@ public struct IconOptions {
     public var planarDither: DitherMode = .floydSteinberg
 
     public init() {}
+}
+
+/// One shadow applied to the artwork — `outer` (offset silhouette behind the
+/// art) or `inner` (recoloured band along the inside edge). Multiple shadows are
+/// applied in order; outer shadows are all cast from the same artwork silhouette
+/// so they don't stack on each other.
+public struct Shadow: Equatable, Codable, Identifiable {
+    public enum Kind: String, Codable, CaseIterable { case outer, inner }
+    public var id = UUID()
+    public var kind: Kind
+    public var dx: Int
+    public var dy: Int
+    public var color: RGB
+    public var alpha: UInt8
+
+    public init(kind: Kind = .outer, dx: Int = 2, dy: Int = 2,
+                color: RGB = RGB(0, 0, 0), alpha: UInt8 = 128) {
+        self.kind = kind; self.dx = dx; self.dy = dy; self.color = color; self.alpha = alpha
+    }
 }
 
 /// Assembles a complete `.info` file from source artwork.
@@ -168,14 +184,37 @@ public enum IconWriter {
             img = img.outlined(color: (options.outlineColor.r, options.outlineColor.g, options.outlineColor.b),
                                thickness: min(options.outlineThickness, margin))
         }
-        if options.shadowOffset > 0 {
-            let d = min(options.shadowOffset, margin) // keep the shadow within the margin
-            img = img.droppingShadow(dx: d, dy: d,
-                                     color: (options.shadowColor.r, options.shadowColor.g, options.shadowColor.b),
-                                     alpha: options.shadowAlpha)
+        if !options.shadows.isEmpty {
+            img = applyShadows(options.shadows, to: img, margin: margin)
         }
         return img
     }
+
+    /// Applies all `shadows` to `img`: outer shadows are cast from the same
+    /// silhouette and composited behind the art together (so they don't stack on
+    /// one another), then inner shadows are painted on top in order. Outer
+    /// offsets are clamped to `margin` so they aren't clipped.
+    private static func applyShadows(_ shadows: [Shadow], to img: RGBAImage, margin: Int) -> RGBAImage {
+        var out = img
+        let outer = shadows.filter { $0.kind == .outer }
+        if !outer.isEmpty {
+            var bg = RGBAImage(width: img.width, height: img.height)
+            for s in outer {
+                let dx = clamp(s.dx, to: margin), dy = clamp(s.dy, to: margin)
+                let layer = img.shadowLayer(dx: dx, dy: dy,
+                                            color: (s.color.r, s.color.g, s.color.b), alpha: s.alpha)
+                bg = bg.blending(layer, atX: 0, atY: 0)
+            }
+            out = bg.blending(out, atX: 0, atY: 0) // art (+ inner later) over the shadows
+        }
+        for s in shadows where s.kind == .inner {
+            out = out.innerShadow(dx: s.dx, dy: s.dy,
+                                  color: (s.color.r, s.color.g, s.color.b), alpha: s.alpha)
+        }
+        return out
+    }
+
+    private static func clamp(_ v: Int, to margin: Int) -> Int { max(-margin, min(margin, v)) }
 
     // MARK: - DiskObject serialisation
 

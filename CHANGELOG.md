@@ -26,6 +26,15 @@ All notable changes to AmigaIconWriter. This project aims to follow
 - **Non-square canvases** via `--preserve-aspect` (canvas hugs the artwork).
 - **DrawerData** written/parsed for disk and drawer icons (window position/size
   + scroll offset).
+- **Badges/emblems** — multiple per icon, composited from the kit's `blending`
+  primitive, positioned/resized by direct drag on a canvas (normalised, saved
+  with the project).
+- **Outline** (solid silhouette stroke) and **shadows** — any number of outer
+  and/or inner shadows — kit primitives wired through options, the app (editable
+  list), and the CLI (`--outline-width`/`-color`, repeatable `--shadow`/
+  `--inner-shadow`).
+- **Forward-compatible document decoding** — older `.amigaicons` projects keep
+  opening as settings fields are added (tolerant `init(from:)`).
 - **Batch/folder image import** and **default-tool / tool-types editing** in the
   app.
 - **NewIcons decoder** + round-trip test.

@@ -79,8 +79,8 @@ GLOW (clicked state, when --selected is not given):
 OUTLINE (solid stroke around the artwork):
   --outline-width <n>    Outline thickness in pixels (0 = off, default 0)
   --outline-color <hex>  RRGGBB (default 000000)
-  --shadow <n>           Drop-shadow offset in pixels (0 = off, default 0)
-  --shadow-color <hex>   RRGGBB (default 000000)
+  --shadow <n>           Add an outer drop shadow, offset n px (repeatable)
+  --inner-shadow <n>     Add an inner shadow, offset n px (repeatable)
 
 QUALITY (colour reduction):
   --resample <m>         Scaling filter: smooth | nearest  (default smooth)
@@ -144,9 +144,12 @@ while !args.isEmpty {
     case "--outline-width": options.outlineThickness = max(0, Int(nextValue(arg)) ?? 0)
     case "--outline-color":
         if let rgb = parseHexColor(nextValue(arg)) { options.outlineColor = rgb }
-    case "--shadow": options.shadowOffset = max(0, Int(nextValue(arg)) ?? 0)
-    case "--shadow-color":
-        if let rgb = parseHexColor(nextValue(arg)) { options.shadowColor = rgb }
+    case "--shadow":
+        let n = max(0, Int(nextValue(arg)) ?? 0)
+        if n > 0 { options.shadows.append(Shadow(kind: .outer, dx: n, dy: n)) }
+    case "--inner-shadow":
+        let n = max(0, Int(nextValue(arg)) ?? 0)
+        if n > 0 { options.shadows.append(Shadow(kind: .inner, dx: n, dy: n)) }
     case "--newicons": options.writeNewIcons = true
     default: fail("unknown argument: \(arg)")
     }
