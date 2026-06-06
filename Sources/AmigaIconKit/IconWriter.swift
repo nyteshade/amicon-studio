@@ -63,6 +63,9 @@ public struct IconOptions {
     public var flipVertical: Bool = false
     public var rotateQuarters: Int = 0 // clockwise 90° turns
 
+    /// Box-blur radius applied to the source before fitting (`0` = off).
+    public var blurRadius: Int = 0
+
     // --- NewIcons (experimental; off by default — see NewIcons.swift) ---
     public var writeNewIcons: Bool = false
 
@@ -187,10 +190,11 @@ public enum IconWriter {
     /// Fits `src` into the icon canvas and applies the optional solid outline.
     private static func composed(_ src: RGBAImage, maxCanvas: Int, maxContent: Int,
                                  options: IconOptions) -> RGBAImage {
-        let source = (options.flipHorizontal || options.flipVertical || options.rotateQuarters % 4 != 0)
+        var source = (options.flipHorizontal || options.flipVertical || options.rotateQuarters % 4 != 0)
             ? src.oriented(flipH: options.flipHorizontal, flipV: options.flipVertical,
                            quarters: options.rotateQuarters)
             : src
+        if options.blurRadius > 0 { source = source.boxBlurred(radius: options.blurRadius) }
         var img = source.fitted(maxCanvas: maxCanvas, maxContent: maxContent,
                                 preserveAspect: options.preserveAspectRatio, filter: options.resampleFilter)
         if options.posterizeLevels >= 2 { img = img.posterized(levels: options.posterizeLevels) }

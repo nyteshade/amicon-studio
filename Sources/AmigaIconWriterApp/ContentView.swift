@@ -291,6 +291,7 @@ struct OutputSettingsView: View {
                             Label("\(settings.rotateQuarters * 90)°", systemImage: "rotate.right")
                         }
                     }
+                    Stepper("Blur: \(settings.blurRadius)px", value: $settings.blurRadius, in: 0...12)
                 }
 
                 Group {

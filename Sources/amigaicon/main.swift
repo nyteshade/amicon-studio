@@ -73,6 +73,7 @@ COLORICON / GLOWICON (OS3.5+, 24-bit):
   --posterize <n>        Quantize art to n levels/channel before reduction (off <2)
   --flip-h / --flip-v    Flip the artwork horizontally / vertically
   --rotate <deg>         Rotate clockwise: 90 | 180 | 270
+  --blur <n>             Box-blur the source by n px before reduction (0 = off)
 
 GLOW (clicked state, when --selected is not given):
   --no-glow              Don't auto-generate a glowing clicked state
@@ -138,6 +139,7 @@ while !args.isEmpty {
     case "--flip-h": options.flipHorizontal = true
     case "--flip-v": options.flipVertical = true
     case "--rotate": options.rotateQuarters = ((Int(nextValue(arg)) ?? 0) / 90) % 4
+    case "--blur": options.blurRadius = max(0, Int(nextValue(arg)) ?? 0)
     case "--resample":
         let v = nextValue(arg).lowercased()
         options.resampleFilter = (v == "nearest" || v == "none") ? .nearest : .smooth

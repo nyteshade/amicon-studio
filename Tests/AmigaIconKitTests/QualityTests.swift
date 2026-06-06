@@ -161,6 +161,15 @@ final class QualityTests: XCTestCase {
         XCTAssertEqual(s.pixel(0, 0).a, 0)   // elsewhere transparent
     }
 
+    func testBoxBlurSpreads() {
+        var img = RGBAImage(width: 5, height: 5)
+        img.setPixel(2, 2, 255, 255, 255, 255)
+        let b = img.boxBlurred(radius: 1)
+        XCTAssertTrue(b.pixel(2, 2).a < 255 && b.pixel(2, 2).a > 0) // centre spreads out
+        XCTAssertTrue(b.pixel(1, 2).a > 0)                           // neighbour gains alpha
+        XCTAssertEqual(b.pixel(4, 4).a, 0)                           // far stays empty
+    }
+
     func testFlipHorizontal() {
         var img = RGBAImage(width: 2, height: 1)
         img.setPixel(0, 0, 9, 0, 0, 255)

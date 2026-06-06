@@ -140,6 +140,33 @@ public extension RGBAImage {
         return out
     }
 
+    /// Separable, alpha-weighted box blur of `radius` px (alpha weighting avoids
+    /// dark halos bleeding from transparent areas). `radius <= 0` is a no-op.
+    func boxBlurred(radius: Int) -> RGBAImage {
+        guard radius > 0 else { return self }
+        return blurPass(radius: radius, horizontal: true).blurPass(radius: radius, horizontal: false)
+    }
+
+    private func blurPass(radius: Int, horizontal: Bool) -> RGBAImage {
+        var out = RGBAImage(width: width, height: height)
+        for y in 0..<height {
+            for x in 0..<width {
+                var ar = 0.0, ag = 0.0, ab = 0.0, asum = 0.0, n = 0.0
+                for k in -radius...radius {
+                    let sx = horizontal ? x + k : x
+                    let sy = horizontal ? y : y + k
+                    guard sx >= 0, sx < width, sy >= 0, sy < height else { continue }
+                    let p = pixel(sx, sy); let a = Double(p.a) / 255
+                    ar += Double(p.r) * a; ag += Double(p.g) * a; ab += Double(p.b) * a
+                    asum += a; n += 1
+                }
+                guard n > 0 else { continue }
+                if asum > 0 { out.setPixel(x, y, u8(ar / asum), u8(ag / asum), u8(ab / asum), u8(asum / n * 255)) }
+            }
+        }
+        return out
+    }
+
     func flippedHorizontally() -> RGBAImage {
         var out = RGBAImage(width: width, height: height)
         for y in 0..<height { for x in 0..<width {
