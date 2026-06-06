@@ -271,3 +271,43 @@ public enum IconDecoder {
         return String(String.UnicodeScalarView(content.map { Unicode.Scalar($0) }))
     }
 }
+
+public extension IconDecoder.DecodedIcon {
+    /// Best full-colour rendering of the **normal** state for re-editing an
+    /// existing icon: the GlowIcon if the file has one, otherwise the classic
+    /// planar image rendered against `planarPalette` (pen 0 shown transparent).
+    func renderedNormal(planarPalette: [RGB] = magicWB8Palette) -> RGBAImage {
+        colorIconNormal?.rgba() ?? planarNormal.rgba(palette: planarPalette, transparentIndex: 0)
+    }
+
+    /// Best full-colour rendering of the **clicked/selected** state, or `nil` if
+    /// the file carries only a single (normal) image.
+    func renderedSelected(planarPalette: [RGB] = magicWB8Palette) -> RGBAImage? {
+        if let c = colorIconSelected { return c.rgba() }
+        return planarSelected?.rgba(palette: planarPalette, transparentIndex: 0)
+    }
+
+    /// A short human-readable summary of the icon's structure, used by
+    /// `amigaicon inspect` and handy for debugging.
+    var summary: String {
+        var lines: [String] = []
+        let typeName = type.map { "\($0)" } ?? "unknown(\(rawType))"
+        lines.append("type:        \(typeName)")
+        lines.append("gadget:      \(gadgetWidth)×\(gadgetHeight)")
+        lines.append("planar:      \(planarNormal.width)×\(planarNormal.height), depth \(planarNormal.depth)"
+                     + (planarSelected != nil ? " (+ selected)" : ""))
+        if let n = colorIconNormal {
+            lines.append("glowIcon:    \(n.width)×\(n.height), \(n.colorCount) colours"
+                         + (n.transparentIndex != nil ? ", transparent" : "")
+                         + (colorIconSelected != nil ? " (+ selected)" : ""))
+        } else {
+            lines.append("glowIcon:    none")
+        }
+        if let dt = defaultTool, !dt.isEmpty { lines.append("defaultTool: \(dt)") }
+        if !toolTypes.isEmpty {
+            lines.append("toolTypes:   \(toolTypes.count)")
+            for tt in toolTypes { lines.append("  • \(tt)") }
+        }
+        return lines.joined(separator: "\n")
+    }
+}

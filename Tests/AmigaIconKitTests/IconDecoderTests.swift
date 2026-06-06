@@ -119,6 +119,39 @@ final class IconDecoderTests: XCTestCase {
         XCTAssertNotNil(decoded.colorIconSelected)
     }
 
+    /// Writing a built icon to disk and decoding it back must reproduce its
+    /// metadata — and renders are available for re-editing an imported icon.
+    func testFileRoundTripAndRenders() throws {
+        var img = RGBAImage(width: 16, height: 16)
+        for y in 0..<16 { for x in 0..<16 { img.setPixel(x, y, UInt8(x * 16), 80, UInt8(y * 16), 255) } }
+        var opts = IconOptions()
+        opts.type = .tool
+        opts.toolTypes = ["A=1"]
+        let bytes = try IconWriter.build(normal: img, selected: nil, options: opts)
+
+        let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("amicon_sample.info")
+        try Data(bytes).write(to: url)
+        let decoded = try IconDecoder.decode([UInt8](Data(contentsOf: url)))
+
+        XCTAssertEqual(decoded.type, .tool)
+        XCTAssertTrue(decoded.hasColorIcon)
+        // Re-editable renders: normal prefers the GlowIcon; selected exists (glow).
+        XCTAssertEqual(decoded.renderedNormal().width, decoded.colorIconNormal?.width)
+        XCTAssertNotNil(decoded.renderedSelected())
+        XCTAssertFalse(decoded.summary.isEmpty)
+    }
+
+    /// With no GlowIcon, the rendered normal falls back to the planar image.
+    func testRenderedNormalFallsBackToPlanar() throws {
+        let img = RGBAImage(width: 16, height: 16, pixels: [UInt8](repeating: 200, count: 16 * 16 * 4))
+        var opts = IconOptions()
+        opts.writeColorIcon = false
+        let decoded = try IconDecoder.decode(try IconWriter.build(normal: img, selected: nil, options: opts))
+        XCTAssertNil(decoded.colorIconNormal)
+        let r = decoded.renderedNormal(planarPalette: workbench4Palette)
+        XCTAssertEqual(r.width, decoded.planarNormal.width)
+    }
+
     func testBadMagicThrows() {
         XCTAssertThrowsError(try IconDecoder.decode([0x00, 0x00, 0x00, 0x00, 0x00, 0x00])) { error in
             guard case IconDecoder.DecodeError.badMagic = error else {

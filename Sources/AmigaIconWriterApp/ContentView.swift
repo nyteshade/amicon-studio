@@ -28,6 +28,7 @@ struct ContentView: View {
         .toolbar {
             ToolbarItemGroup {
                 Button(action: addIcon) { Label("Add Icon", systemImage: "plus") }
+                Button(action: importInfo) { Label("Import .info", systemImage: "square.and.arrow.down") }
                 Button(action: exportSelected) { Label("Export .info", systemImage: "square.and.arrow.up") }
                     .disabled(selectedItemBinding == nil)
                 Button(action: exportAll) { Label("Export All", systemImage: "square.and.arrow.up.on.square") }
@@ -56,6 +57,23 @@ struct ContentView: View {
         guard let id = selection else { return }
         document.project.items.removeAll { $0.id == id }
         selection = document.project.items.first?.id
+    }
+
+    // MARK: - Import existing .info icons
+
+    private func importInfo() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.allowedContentTypes = [UTType(filenameExtension: "info") ?? .data]
+        guard panel.runModal() == .OK else { return }
+        for url in panel.urls {
+            guard let data = try? Data(contentsOf: url),
+                  let item = IconRenderer.item(fromInfo: data,
+                                               name: url.deletingPathExtension().lastPathComponent) else { continue }
+            document.project.items.append(item)
+            selection = item.id
+        }
     }
 
     // MARK: - Export

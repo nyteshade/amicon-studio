@@ -1,12 +1,39 @@
 import Foundation
 import AmigaIconKit
-
-// A small command-line front-end for AmigaIconKit. Image loading uses ImageIO,
-// so the tool itself is macOS-only; on other platforms it builds (so the whole
-// package, and CI, stays green) but just prints a notice. Use AmigaIconKit
-// directly elsewhere.
 #if canImport(CoreGraphics) && canImport(ImageIO)
-import AmigaIconImageIO // RGBAImage(contentsOf:) ImageIO loader
+import AmigaIconImageIO // RGBAImage(contentsOf:) ImageIO loader (writer only)
+#endif
+
+// ---- `inspect` subcommand -------------------------------------------------
+// Decoding an .info needs no image I/O, so this works on every platform
+// (including Linux) — only the *writing* side below needs ImageIO.
+func runInspect(_ args: [String]) -> Never {
+    guard let path = args.first else {
+        FileHandle.standardError.write(Data("usage: amigaicon inspect <file.info>\n".utf8))
+        exit(2)
+    }
+    guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else {
+        FileHandle.standardError.write(Data("error: could not read \(path)\n".utf8))
+        exit(1)
+    }
+    do {
+        let icon = try IconDecoder.decode([UInt8](data))
+        print("\(path)  (\(data.count) bytes)")
+        print(icon.summary)
+        exit(0)
+    } catch {
+        FileHandle.standardError.write(Data("error: not a valid .info: \(error)\n".utf8))
+        exit(1)
+    }
+}
+
+let topArgs = Array(CommandLine.arguments.dropFirst())
+if topArgs.first == "inspect" { runInspect(Array(topArgs.dropFirst())) }
+
+// A command-line front-end for AmigaIconKit. The *writer* loads images via
+// ImageIO, so it is macOS-only; on other platforms the package still builds
+// (CI stays green) and prints a notice. `inspect` (above) works everywhere.
+#if canImport(CoreGraphics) && canImport(ImageIO)
 
 let usage = """
 amigaicon — write Amiga .info icons (classic planar + OS3.5+ 24-bit GlowIcons)

@@ -93,5 +93,26 @@ enum IconRenderer {
                                                 options: item.settings.makeOptions()) else { return nil }
         return Data(bytes)
     }
+
+    /// Builds an editable project item from an existing `.info` file's bytes,
+    /// so a user can open an icon, tweak it, and re-export. The highest-fidelity
+    /// image available (the GlowIcon, else the planar fallback) becomes the
+    /// stored original; type, default tool and tool types carry over.
+    static func item(fromInfo data: Data, name: String) -> IconItem? {
+        guard let decoded = try? IconDecoder.decode([UInt8](data)) else { return nil }
+        var item = IconItem()
+        item.name = name
+        let planarPalette: [RGB] = decoded.planarNormal.depth <= 2 ? workbench4Palette : magicWB8Palette
+        item.normalPNG = decoded.renderedNormal(planarPalette: planarPalette).pngData()
+        if let sel = decoded.renderedSelected(planarPalette: planarPalette) {
+            item.clickedPNG = sel.pngData()
+            item.settings.autoGlow = false // preserve the imported clicked state as-is
+        }
+        if let t = decoded.type { item.settings.iconType = Int(t.rawValue) }
+        item.settings.defaultTool = decoded.defaultTool ?? ""
+        // Keep the user's tool types; drop any embedded NewIcons (IMn=) payload.
+        item.settings.toolTypes = decoded.toolTypes.filter { !$0.hasPrefix("IM1=") && !$0.hasPrefix("IM2=") }
+        return item
+    }
 }
 #endif

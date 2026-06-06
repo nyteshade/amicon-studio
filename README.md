@@ -102,9 +102,14 @@ swift test                       # runs the format round-trip / structure tests
 ```
 
 > The whole package builds on Linux: `AmigaIconKit` and its tests build fully,
-> while the SwiftUI app compiles to a trivial stub and the `amigaicon` CLI builds
-> but prints a "requires macOS" notice (image loading needs ImageIO). So plain
-> `swift build` / `swift test` work as-is on Linux — no need to trim the manifest.
+> and the `amigaicon` **`inspect`** subcommand (decode only, no image I/O) runs
+> everywhere. Only the *writing* side of the CLI needs ImageIO; on Linux it
+> prints a "requires macOS" notice, and the SwiftUI app compiles to a trivial
+> stub. So plain `swift build` / `swift test` work as-is — no manifest trimming.
+>
+> ```bash
+> amigaicon inspect MyTool.info   # dump type, sizes, palette, tool types (any OS)
+> ```
 >
 > CI (`.github/workflows/ci.yml`) runs the suite on Linux and additionally
 > builds **every** target (incl. the SwiftUI app) on a macOS runner, which is
@@ -179,6 +184,9 @@ sandboxing, and a distributable bundle):
 - Effects are applied **non-destructively**: the project keeps the **original
   dropped images at full resolution**, so you can change target sizes or
   effects at any time and re-render without quality loss (CandyBar-style).
+- **Import** (toolbar): open existing `.info` icons back into the project — the
+  GlowIcon (or planar fallback) becomes an editable original, with the icon type,
+  default tool and tool types carried over — then tweak and re-export.
 - **Export** (toolbar): write the selected icon — or every icon in the project
   — to `.info` files.
 
