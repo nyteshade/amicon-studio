@@ -229,6 +229,10 @@ struct EffectRow: View {
             if fx.kind.usesRadius {
                 Slider(value: $fx.radius, in: 0...20)
             }
+            Picker("", selection: $fx.target) {
+                ForEach(EffectTarget.allCases) { Text($0.label).tag($0) }
+            }
+            .pickerStyle(.segmented).labelsHidden()
         }
         .padding(8)
         .background(RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.08)))
@@ -458,12 +462,17 @@ struct ToolTypesEditor: View {
 
 struct IconCanvas: View {
     let item: Binding<IconItem>?
+    @State private var bypassEffects = false
 
     var body: some View {
         if let item {
-            let previews = IconRenderer.previews(for: item.wrappedValue)
+            let previews = IconRenderer.previews(for: item.wrappedValue, bypassEffects: bypassEffects)
             VStack(spacing: 16) {
                 Text(item.wrappedValue.name).font(.title2.weight(.semibold))
+                if !item.wrappedValue.effects.isEmpty {
+                    Toggle("Show original (bypass filters)", isOn: $bypassEffects)
+                        .toggleStyle(.switch).font(.caption)
+                }
                 HStack(alignment: .top, spacing: 40) {
                     VStack {
                         DropWell(title: "Unclicked", pngData: item.normalPNG,

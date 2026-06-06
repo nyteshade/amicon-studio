@@ -70,6 +70,19 @@ enum EffectKind: String, Codable, CaseIterable, Identifiable {
     var defaultRadius: Double { self == .sharpen ? 2 : 8 }
 }
 
+/// Which icon state(s) an effect applies to.
+enum EffectTarget: String, Codable, CaseIterable, Identifiable {
+    case both, unclicked, clicked
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .both: return "Both"
+        case .unclicked: return "Unclicked"
+        case .clicked: return "Clicked"
+        }
+    }
+}
+
 /// A configured, toggleable instance of an effect in an item's stack.
 struct EffectInstance: Codable, Equatable, Identifiable {
     var id = UUID()
@@ -77,6 +90,8 @@ struct EffectInstance: Codable, Equatable, Identifiable {
     var amount: Double
     var radius: Double
     var enabled = true
+    /// Which state(s) this effect filters (default both).
+    var target: EffectTarget = .both
 
     init(_ kind: EffectKind) {
         self.kind = kind

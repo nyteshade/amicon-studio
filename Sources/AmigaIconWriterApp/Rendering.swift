@@ -27,15 +27,17 @@ enum IconRenderer {
     /// reduced GlowIcon palette, the transparent index, and the low-colour
     /// planar image, rather than the full-colour source. What you see is what
     /// the Amiga gets.
-    static func previews(for item: IconItem) -> (normal: NSImage?, clicked: NSImage?, planar: NSImage?) {
+    static func previews(for item: IconItem, bypassEffects: Bool = false) -> (normal: NSImage?, clicked: NSImage?, planar: NSImage?) {
+        let nFx = bypassEffects ? [] : effects(item.effects, for: .unclicked)
+        let cFx = bypassEffects ? [] : effects(item.effects, for: .clicked)
         guard let nData = item.normalPNG,
-              let base = effected(from: nData, effects: item.effects) else {
+              let base = effected(from: nData, effects: nFx) else {
             return (nil, nil, nil)
         }
         let opts = item.settings.makeOptions()
         let normal = badged(base, item: item)
         let selected = item.clickedPNG
-            .flatMap { effected(from: $0, effects: item.effects) }
+            .flatMap { effected(from: $0, effects: cFx) }
             .map { badged($0, item: item) }
 
         // Encode then decode, so the colour (GlowIcon) states reflect the real
@@ -90,14 +92,19 @@ enum IconRenderer {
     /// Builds the `.info` byte stream for a single icon, with effects + badge.
     static func infoData(for item: IconItem) -> Data? {
         guard let nData = item.normalPNG,
-              let base = effected(from: nData, effects: item.effects) else { return nil }
+              let base = effected(from: nData, effects: effects(item.effects, for: .unclicked)) else { return nil }
         let normal = badged(base, item: item)
         let selected = item.clickedPNG
-            .flatMap { effected(from: $0, effects: item.effects) }
+            .flatMap { effected(from: $0, effects: effects(item.effects, for: .clicked)) }
             .map { badged($0, item: item) }
         guard let bytes = try? IconWriter.build(normal: normal, selected: selected,
                                                 options: item.settings.makeOptions()) else { return nil }
         return Data(bytes)
+    }
+
+    /// Effects that apply to a given state: `.both` plus that state's own.
+    private static func effects(_ all: [EffectInstance], for state: EffectTarget) -> [EffectInstance] {
+        all.filter { $0.target == .both || $0.target == state }
     }
 
     /// Stamps the item's badges onto a base image, in order — each scaled to a
