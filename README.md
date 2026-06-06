@@ -143,6 +143,13 @@ let bytes = try IconWriter.build(normal: art, selected: nil, options: IconOption
 On Apple platforms, add the separate **`AmigaIconImageIO`** product if you want
 to load source art from files (`RGBAImage(contentsOf:)`) or get `pngData()`.
 
+`RGBAImage` also offers pure, composable effect primitives you can use directly:
+`addingGlow`, `outlined`, `droppingShadow`/`innerShadow` (with feathered
+`softShadowLayer`), `boxBlurred`, `posterized`, `tinted`, `blending` (alpha
+composite), `flippedHorizontally`/`flippedVertically`/`rotated90`, and
+`areaResampled`. `IconWriter.build` applies them per `IconOptions`;
+`IconWriter.reencode(_:)` rewrites a decoded icon without re-quantising.
+
 ## The command-line tool (macOS)
 
 ```bash

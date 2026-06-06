@@ -29,12 +29,16 @@ All notable changes to AmigaIconWriter. This project aims to follow
 - **Badges/emblems** — multiple per icon, composited from the kit's `blending`
   primitive, positioned/resized by direct drag on a canvas (normalised, saved
   with the project).
-- **Outline** (solid silhouette stroke) and **shadows** — any number of outer
-  and/or inner shadows — kit primitives wired through options, the app (editable
-  list), and the CLI (`--outline-width`/`-color`, repeatable `--shadow`/
-  `--inner-shadow`).
+- **Effects & adjustments** (kit primitives, wired through options/app/CLI):
+  - **Outline** — solid silhouette stroke.
+  - **Shadows** — any number of outer and/or inner shadows, each with offset,
+    colour, opacity and a feathered **blur**.
+  - **Posterize**, **box blur**, flat **tint**, and **orientation** (flip H/V,
+    90° rotation).
 - **Forward-compatible document decoding** — older `.amigaicons` projects keep
   opening as settings fields are added (tolerant `init(from:)`).
+- **`IconWriter.reencode`** — losslessly rewrite a decoded icon (edit metadata
+  or reduced images without re-quantising source art).
 - **Batch/folder image import** and **default-tool / tool-types editing** in the
   app.
 - **NewIcons decoder** + round-trip test.
