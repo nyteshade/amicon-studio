@@ -107,6 +107,17 @@ final class QualityTests: XCTestCase {
         XCTAssertEqual(out.pixel(0, 0).r, 255) // red elsewhere
     }
 
+    func testBlendModes() {
+        let base = RGBAImage(width: 1, height: 1, pixels: [200, 200, 200, 255])
+        let top = RGBAImage(width: 1, height: 1, pixels: [100, 100, 100, 255])
+        XCTAssertEqual(Int(base.blending(top, atX: 0, atY: 0, mode: .multiply).pixel(0, 0).r), 78, accuracy: 2)
+        XCTAssertEqual(base.blending(top, atX: 0, atY: 0, mode: .darken).pixel(0, 0).r, 100)
+        XCTAssertEqual(base.blending(top, atX: 0, atY: 0, mode: .lighten).pixel(0, 0).r, 200)
+        // Normal at 50% opacity = halfway between backdrop and source.
+        XCTAssertEqual(Int(base.blending(top, atX: 0, atY: 0, mode: .normal, opacity: 0.5).pixel(0, 0).r),
+                       150, accuracy: 2)
+    }
+
     func testBlendingHalfAlphaMixes() {
         let base = RGBAImage(width: 1, height: 1, pixels: [255, 0, 0, 255]) // opaque red
         let top = RGBAImage(width: 1, height: 1, pixels: [0, 255, 0, 128])  // ~50% green

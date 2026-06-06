@@ -370,11 +370,13 @@ public extension RGBAImage {
         return dist
     }
 
-    /// Composites `top` over a copy of this image using source-over alpha
-    /// blending, with `top`'s upper-left corner at `(atX, atY)`. Parts of `top`
-    /// that fall outside the bounds are clipped. Used to stamp a badge/emblem
-    /// onto icon artwork.
-    func blending(_ top: RGBAImage, atX: Int, atY: Int) -> RGBAImage {
+    /// Composites `top` over a copy of this image with `top`'s upper-left corner
+    /// at `(atX, atY)`, using the given blend `mode` and layer `opacity` (0...1).
+    /// Out-of-bounds parts of `top` are clipped. `.normal` at opacity 1 is plain
+    /// source-over. Used to stamp badges / layers onto icon artwork.
+    func blending(_ top: RGBAImage, atX: Int, atY: Int,
+                  mode: BlendMode = .normal, opacity: Double = 1) -> RGBAImage {
+        let op = max(0, min(1, opacity))
         var out = self
         for ty in 0..<top.height {
             let y = atY + ty
@@ -383,19 +385,44 @@ public extension RGBAImage {
                 let x = atX + tx
                 guard x >= 0, x < width else { continue }
                 let t = top.pixel(tx, ty)
-                let ta = Double(t.a) / 255
+                let ta = Double(t.a) / 255 * op
                 if ta <= 0 { continue }
                 let b = pixel(x, y)
                 let ba = Double(b.a) / 255
+                // Source colour after blending with the (covered) backdrop; over
+                // a transparent backdrop the blend reduces to the source colour.
+                func chan(_ cb: UInt8, _ cs: UInt8) -> Double {
+                    let cbN = Double(cb) / 255, csN = Double(cs) / 255
+                    return ba * mode.blend(cbN, csN) + (1 - ba) * csN
+                }
+                let sr = chan(b.r, t.r), sg = chan(b.g, t.g), sb = chan(b.b, t.b)
                 let outA = ta + ba * (1 - ta)
                 guard outA > 0 else { out.setPixel(x, y, 0, 0, 0, 0); continue }
-                let r = (Double(t.r) * ta + Double(b.r) * ba * (1 - ta)) / outA
-                let g = (Double(t.g) * ta + Double(b.g) * ba * (1 - ta)) / outA
-                let bl = (Double(t.b) * ta + Double(b.b) * ba * (1 - ta)) / outA
-                out.setPixel(x, y, u8(r), u8(g), u8(bl), u8(outA * 255))
+                let r = (sr * ta + Double(b.r) / 255 * ba * (1 - ta)) / outA
+                let g = (sg * ta + Double(b.g) / 255 * ba * (1 - ta)) / outA
+                let bl = (sb * ta + Double(b.b) / 255 * ba * (1 - ta)) / outA
+                out.setPixel(x, y, u8(r * 255), u8(g * 255), u8(bl * 255), u8(outA * 255))
             }
         }
         return out
+    }
+}
+
+/// Layer blend modes for `RGBAImage.blending`. Channel values are normalised
+/// 0...1; `cb` is the backdrop, `cs` the source.
+public enum BlendMode: String, Codable, CaseIterable, Equatable {
+    case normal, multiply, screen, overlay, darken, lighten, add
+
+    func blend(_ cb: Double, _ cs: Double) -> Double {
+        switch self {
+        case .normal:   return cs
+        case .multiply: return cb * cs
+        case .screen:   return 1 - (1 - cb) * (1 - cs)
+        case .overlay:  return cb < 0.5 ? 2 * cb * cs : 1 - 2 * (1 - cb) * (1 - cs)
+        case .darken:   return min(cb, cs)
+        case .lighten:  return max(cb, cs)
+        case .add:      return min(1, cb + cs)
+        }
     }
 }
 

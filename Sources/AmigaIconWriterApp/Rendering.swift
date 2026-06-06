@@ -35,10 +35,10 @@ enum IconRenderer {
             return (nil, nil, nil)
         }
         let opts = item.settings.makeOptions()
-        let normal = badged(base, item: item)
+        let normal = composited(base, layers: item.layers, state: .unclicked)
         let selected = item.clickedPNG
             .flatMap { effected(from: $0, effects: cFx) }
-            .map { badged($0, item: item) }
+            .map { composited($0, layers: item.layers, state: .clicked) }
 
         // Encode then decode, so the colour (GlowIcon) states reflect the real
         // reduced palette and transparent index that get written.
@@ -93,10 +93,10 @@ enum IconRenderer {
     static func infoData(for item: IconItem) -> Data? {
         guard let nData = item.normalPNG,
               let base = effected(from: nData, effects: effects(item.effects, for: .unclicked)) else { return nil }
-        let normal = badged(base, item: item)
+        let normal = composited(base, layers: item.layers, state: .unclicked)
         let selected = item.clickedPNG
             .flatMap { effected(from: $0, effects: effects(item.effects, for: .clicked)) }
-            .map { badged($0, item: item) }
+            .map { composited($0, layers: item.layers, state: .clicked) }
         guard let bytes = try? IconWriter.build(normal: normal, selected: selected,
                                                 options: item.settings.makeOptions()) else { return nil }
         return Data(bytes)
@@ -107,22 +107,21 @@ enum IconRenderer {
         all.filter { $0.target == .both || $0.target == state }
     }
 
-    /// Stamps the item's badges onto a base image, in order — each scaled to a
-    /// fraction of the artwork and centred at its normalised position.
-    private static func badged(_ base: RGBAImage, item: IconItem) -> RGBAImage {
-        guard !item.badges.isEmpty else { return base }
+    /// Composites the item's visible layers (matching `state`) onto a base image
+    /// in draw order, honouring each layer's position, scale, opacity and blend.
+    private static func composited(_ base: RGBAImage, layers: [Layer], state: EffectTarget) -> RGBAImage {
         var out = base
         let minSide = Double(min(base.width, base.height))
-        for b in item.badges {
-            guard let img0 = RGBAImage(data: b.png) else { continue }
-            let target = max(1, Int((minSide * max(0.02, min(2.0, b.scale))).rounded()))
+        for l in layers where l.visible && (l.target == .both || l.target == state) {
+            guard let img0 = RGBAImage(data: l.png) else { continue }
+            let target = max(1, Int((minSide * max(0.02, min(2.0, l.scale))).rounded()))
             let s = min(Double(target) / Double(img0.width), Double(target) / Double(img0.height))
-            let bw = max(1, Int((Double(img0.width) * s).rounded()))
-            let bh = max(1, Int((Double(img0.height) * s).rounded()))
-            let badge = img0.resized(to: bw, to: bh, filter: .smooth)
-            let cx = Int((b.x * Double(base.width)).rounded()) - bw / 2
-            let cy = Int((b.y * Double(base.height)).rounded()) - bh / 2
-            out = out.blending(badge, atX: cx, atY: cy)
+            let lw = max(1, Int((Double(img0.width) * s).rounded()))
+            let lh = max(1, Int((Double(img0.height) * s).rounded()))
+            let img = img0.resized(to: lw, to: lh, filter: .smooth)
+            let cx = Int((l.x * Double(base.width)).rounded()) - lw / 2
+            let cy = Int((l.y * Double(base.height)).rounded()) - lh / 2
+            out = out.blending(img, atX: cx, atY: cy, mode: l.blend, opacity: l.opacity)
         }
         return out
     }

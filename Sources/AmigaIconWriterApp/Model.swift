@@ -2,18 +2,24 @@
 import Foundation
 import AmigaIconKit
 
-/// A badge/emblem overlaid on the artwork. Position and size are stored
-/// normalised (relative to the artwork) so they're resolution-independent and
-/// survive re-rendering at any target size.
-struct Badge: Codable, Equatable, Identifiable {
+/// An image layer (badge / emblem / overlay) composited onto the artwork.
+/// Position and size are normalised (relative to the artwork) so they're
+/// resolution-independent and survive re-rendering at any target size.
+struct Layer: Codable, Equatable, Identifiable {
     var id = UUID()
-    /// Overlay image, full-resolution PNG.
+    var name = "Layer"
+    /// Layer image, full-resolution PNG.
     var png: Data
-    /// Centre of the badge, 0...1 across the artwork (x = left→right, y = top→bottom).
-    var x: Double = 0.72
-    var y: Double = 0.72
-    /// Longer side of the badge as a fraction of the artwork's smaller dimension.
+    /// Centre of the layer, 0...1 across the artwork (x = left→right, top→bottom).
+    var x: Double = 0.5
+    var y: Double = 0.5
+    /// Longer side as a fraction of the artwork's smaller dimension.
     var scale: Double = 0.4
+    var opacity: Double = 1
+    var blend: BlendMode = .normal
+    var visible = true
+    /// Which state(s) this layer is composited onto.
+    var target: EffectTarget = .both
 }
 
 /// Per-icon render settings. Defaults follow the conventions discussed:
@@ -121,8 +127,8 @@ struct IconItem: Codable, Identifiable, Equatable {
     var normalPNG: Data?
     /// Original clicked-state artwork, if the user provided one explicitly.
     var clickedPNG: Data?
-    /// Badges/emblems overlaid on the artwork, in draw order.
-    var badges: [Badge] = []
+    /// Image layers overlaid on the artwork, in draw order (first = bottom).
+    var layers: [Layer] = []
     /// CoreImage effect stack applied (non-destructively) to the originals.
     var effects: [EffectInstance] = []
     var settings = RenderSettings()
