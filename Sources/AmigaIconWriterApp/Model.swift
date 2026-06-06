@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import AmigaIconKit
 
@@ -79,3 +80,4 @@ extension RGB {
     }
     var hexString: String { String(format: "%02X%02X%02X", r, g, b) }
 }
+#endif

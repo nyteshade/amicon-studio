@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Pure-Foundation core: builds and runs the full round-trip / format test
+  # suite on Linux. The whole package builds here too — the macOS-only app
+  # compiles to its trivial stub and the CLI prints a notice.
+  linux:
+    name: Linux (Swift 6.1)
+    runs-on: ubuntu-latest
+    container: swift:6.1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift version
+        run: swift --version
+      - name: Build
+        run: swift build
+      - name: Test
+        run: swift test
+
+  # The real check for the macOS / SwiftUI code that can't compile on Linux:
+  # builds every target (incl. the SwiftUI document app and the ImageIO CLI)
+  # and runs the tests with the macOS SDK available.
+  macos:
+    name: macOS
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift version
+        run: swift --version
+      - name: Build (all targets, incl. SwiftUI app + CLI)
+        run: swift build
+      - name: Test
+        run: swift test

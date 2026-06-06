@@ -1,9 +1,12 @@
 import Foundation
 import AmigaIconKit
-import AmigaIconImageIO // RGBAImage(contentsOf:) ImageIO loader
 
-// A small, dependency-free command-line front-end for AmigaIconKit. Image
-// loading uses ImageIO, so this is effectively a macOS tool.
+// A small command-line front-end for AmigaIconKit. Image loading uses ImageIO,
+// so the tool itself is macOS-only; on other platforms it builds (so the whole
+// package, and CI, stays green) but just prints a notice. Use AmigaIconKit
+// directly elsewhere.
+#if canImport(CoreGraphics) && canImport(ImageIO)
+import AmigaIconImageIO // RGBAImage(contentsOf:) ImageIO loader
 
 let usage = """
 amigaicon — write Amiga .info icons (classic planar + OS3.5+ 24-bit GlowIcons)
@@ -155,3 +158,8 @@ func parseHexColor(_ s: String) -> RGB? {
     guard hex.count == 6, let v = UInt32(hex, radix: 16) else { return nil }
     return RGB(UInt8((v >> 16) & 0xFF), UInt8((v >> 8) & 0xFF), UInt8(v & 0xFF))
 }
+
+#else
+FileHandle.standardError.write(Data("amigaicon requires macOS (ImageIO) for image loading.\n".utf8))
+exit(1)
+#endif

@@ -95,10 +95,14 @@ The kit and tests are pure Foundation and build on macOS **and Linux**:
 swift test                       # runs the format round-trip / structure tests
 ```
 
-> On Linux the `amigaicon` CLI and the SwiftUI app won't build (they need
-> ImageIO / SwiftUI), but `AmigaIconKit` and its tests do. To run only the kit
-> tests on Linux, temporarily trim `Package.swift` to the `AmigaIconKit` library
-> and test target.
+> The whole package builds on Linux: `AmigaIconKit` and its tests build fully,
+> while the SwiftUI app compiles to a trivial stub and the `amigaicon` CLI builds
+> but prints a "requires macOS" notice (image loading needs ImageIO). So plain
+> `swift build` / `swift test` work as-is on Linux — no need to trim the manifest.
+>
+> CI (`.github/workflows/ci.yml`) runs the suite on Linux and additionally
+> builds **every** target (incl. the SwiftUI app) on a macOS runner, which is
+> what type-checks the macOS/SwiftUI code.
 
 ### Reusing the core in your own code
 
