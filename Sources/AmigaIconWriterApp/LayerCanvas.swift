@@ -16,6 +16,7 @@ struct LayerCanvas: View {
     var size: CGFloat = 260
 
     @State private var selection: UUID?
+    @State private var renamingID: UUID?
     private let space = "layerCanvas"
 
     private var selectedIndex: Int? { item.layers.firstIndex { $0.id == selection } }
@@ -62,6 +63,7 @@ struct LayerCanvas: View {
 
     /// The context menu for a layer (shared by the canvas overlay and the list).
     @ViewBuilder private func layerMenu(_ l: Layer) -> some View {
+        Button("Rename") { selection = l.id; renamingID = l.id }
         Button(l.visible ? "Hide" : "Show") { setVisible(l.id, !l.visible) }
         Button("Duplicate") { duplicate(l.id) }
         Divider()
@@ -158,7 +160,14 @@ struct LayerCanvas: View {
                     Button { item.layers[idx].visible.toggle() } label: {
                         Image(systemName: l.visible ? "eye" : "eye.slash")
                     }.buttonStyle(.borderless)
-                    Text(l.name).lineLimit(1)
+                    if renamingID == l.id {
+                        TextField("Name", text: $item.layers[idx].name)
+                            .textFieldStyle(.roundedBorder).frame(maxWidth: 130)
+                            .onSubmit { renamingID = nil }
+                    } else {
+                        Text(l.name).lineLimit(1)
+                            .onTapGesture(count: 2) { selection = l.id; renamingID = l.id }
+                    }
                     Spacer()
                     Button { move(idx, by: -1) } label: { Image(systemName: "arrow.up") }
                         .buttonStyle(.borderless).disabled(idx == 0)

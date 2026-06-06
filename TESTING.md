@@ -26,6 +26,7 @@ tests (`swift test`); this list is everything else. Grown as features land.
       Front/Forward, Send Backward/to Back, Blend submenu, Applies-To submenu, Delete.
 - [ ] Context menu on empty canvas: Add Layer / Deselect.
 - [ ] Layer list: visibility toggles, reorder arrows, selection highlight.
+- [ ] Double-click a layer name (or Rename in the menu) to rename inline.
 - [ ] Inspector: name, opacity, size, blend, target, visibility — live-update preview.
 - [ ] Blend modes look correct (multiply/screen/overlay/darken/lighten/add).
 - [ ] Drop an image onto the layer canvas to add a layer.
