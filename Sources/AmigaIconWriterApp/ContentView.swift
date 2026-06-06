@@ -162,6 +162,8 @@ struct ToolSidebar: View {
                     effectsPalette(item)
                     effectStack(item)
                     Divider()
+                    BadgeEditor(item: item)
+                    Divider()
                     OutputSettingsView(settings: item.settings)
                 }
                 .padding(12)
@@ -316,6 +318,27 @@ struct OutputSettingsView: View {
                 settings.glowColorHex = rgb.hexString
             }
         )
+    }
+}
+
+/// Drop a badge/emblem image and choose where it sits on the artwork.
+struct BadgeEditor: View {
+    @Binding var item: IconItem
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("BADGE / EMBLEM").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            DropWell(title: "Overlay", pngData: $item.badgePNG, size: 96)
+            if item.badgePNG != nil {
+                Picker("Corner", selection: $item.settings.badgeCorner) {
+                    ForEach(BadgeCorner.allCases, id: \.self) { Text($0.label).tag($0) }
+                }
+                HStack {
+                    Text("Size").font(.callout)
+                    Slider(value: $item.settings.badgeScale, in: 0.1...1.0)
+                }
+            }
+        }
     }
 }
 

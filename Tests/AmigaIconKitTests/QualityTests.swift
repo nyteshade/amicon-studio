@@ -94,6 +94,39 @@ final class QualityTests: XCTestCase {
         XCTAssertTrue(q.indices.allSatisfy { $0 == 0 })
     }
 
+    // MARK: - Compositing (badge overlay)
+
+    func testBlendingOpaqueReplaces() {
+        let base = RGBAImage(width: 4, height: 4, pixels: { var p = [UInt8](repeating: 0, count: 4 * 4 * 4)
+            for i in 0..<16 { p[i * 4] = 255; p[i * 4 + 3] = 255 }; return p }()) // opaque red
+        var top = RGBAImage(width: 2, height: 2)
+        for i in 0..<4 { top.setPixel(i % 2, i / 2, 0, 0, 255, 255) } // opaque blue
+        let out = base.blending(top, atX: 1, atY: 1)
+        XCTAssertEqual(out.pixel(1, 1).b, 255) // blue where stamped
+        XCTAssertEqual(out.pixel(1, 1).r, 0)
+        XCTAssertEqual(out.pixel(0, 0).r, 255) // red elsewhere
+    }
+
+    func testBlendingHalfAlphaMixes() {
+        let base = RGBAImage(width: 1, height: 1, pixels: [255, 0, 0, 255]) // opaque red
+        let top = RGBAImage(width: 1, height: 1, pixels: [0, 255, 0, 128])  // ~50% green
+        let p = base.blending(top, atX: 0, atY: 0).pixel(0, 0)
+        XCTAssertEqual(Int(p.r), 127, accuracy: 2)
+        XCTAssertEqual(Int(p.g), 128, accuracy: 2)
+        XCTAssertEqual(p.a, 255)
+    }
+
+    func testBlendingClipsOutOfBounds() {
+        let base = RGBAImage(width: 2, height: 2, pixels: [UInt8](repeating: 255, count: 2 * 2 * 4))
+        var top = RGBAImage(width: 2, height: 2)
+        for i in 0..<4 { top.setPixel(i % 2, i / 2, 10, 10, 10, 255) } // opaque dark
+        // Placed mostly off-canvas; only (1,1) overlaps — must not crash.
+        let out = base.blending(top, atX: 1, atY: 1)
+        XCTAssertEqual(out.width, 2)
+        XCTAssertEqual(out.pixel(1, 1).r, 10)
+        XCTAssertEqual(out.pixel(0, 0).r, 255) // untouched
+    }
+
     // MARK: - Non-square canvas (preserve aspect)
 
     /// A wide source with `preserveAspectRatio` yields a non-square canvas that

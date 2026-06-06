@@ -99,6 +99,36 @@ public struct RGBAImage: Equatable {
     }
 }
 
+public extension RGBAImage {
+    /// Composites `top` over a copy of this image using source-over alpha
+    /// blending, with `top`'s upper-left corner at `(atX, atY)`. Parts of `top`
+    /// that fall outside the bounds are clipped. Used to stamp a badge/emblem
+    /// onto icon artwork.
+    func blending(_ top: RGBAImage, atX: Int, atY: Int) -> RGBAImage {
+        var out = self
+        for ty in 0..<top.height {
+            let y = atY + ty
+            guard y >= 0, y < height else { continue }
+            for tx in 0..<top.width {
+                let x = atX + tx
+                guard x >= 0, x < width else { continue }
+                let t = top.pixel(tx, ty)
+                let ta = Double(t.a) / 255
+                if ta <= 0 { continue }
+                let b = pixel(x, y)
+                let ba = Double(b.a) / 255
+                let outA = ta + ba * (1 - ta)
+                guard outA > 0 else { out.setPixel(x, y, 0, 0, 0, 0); continue }
+                let r = (Double(t.r) * ta + Double(b.r) * ba * (1 - ta)) / outA
+                let g = (Double(t.g) * ta + Double(b.g) * ba * (1 - ta)) / outA
+                let bl = (Double(t.b) * ta + Double(b.b) * ba * (1 - ta)) / outA
+                out.setPixel(x, y, u8(r), u8(g), u8(bl), u8(outA * 255))
+            }
+        }
+        return out
+    }
+}
+
 /// How `RGBAImage` scales source artwork into the icon canvas.
 public enum ResampleFilter: String, Codable, CaseIterable, Equatable {
     case nearest // crisp; best for pixel art / upscaling

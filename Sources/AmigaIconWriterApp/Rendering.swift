@@ -29,11 +29,14 @@ enum IconRenderer {
     /// the Amiga gets.
     static func previews(for item: IconItem) -> (normal: NSImage?, clicked: NSImage?, planar: NSImage?) {
         guard let nData = item.normalPNG,
-              let normal = effected(from: nData, effects: item.effects) else {
+              let base = effected(from: nData, effects: item.effects) else {
             return (nil, nil, nil)
         }
         let opts = item.settings.makeOptions()
-        let selected = item.clickedPNG.flatMap { effected(from: $0, effects: item.effects) }
+        let normal = badged(base, item: item)
+        let selected = item.clickedPNG
+            .flatMap { effected(from: $0, effects: item.effects) }
+            .map { badged($0, item: item) }
 
         // Encode then decode, so the colour (GlowIcon) states reflect the real
         // reduced palette and transparent index that get written.
@@ -84,14 +87,33 @@ enum IconRenderer {
         return RGBAImage(cgImage: cg)
     }
 
-    /// Builds the `.info` byte stream for a single icon, with effects applied.
+    /// Builds the `.info` byte stream for a single icon, with effects + badge.
     static func infoData(for item: IconItem) -> Data? {
         guard let nData = item.normalPNG,
-              let normal = effected(from: nData, effects: item.effects) else { return nil }
-        let selected = item.clickedPNG.flatMap { effected(from: $0, effects: item.effects) }
+              let base = effected(from: nData, effects: item.effects) else { return nil }
+        let normal = badged(base, item: item)
+        let selected = item.clickedPNG
+            .flatMap { effected(from: $0, effects: item.effects) }
+            .map { badged($0, item: item) }
         guard let bytes = try? IconWriter.build(normal: normal, selected: selected,
                                                 options: item.settings.makeOptions()) else { return nil }
         return Data(bytes)
+    }
+
+    /// Stamps the item's badge/emblem (if any) onto a base image, scaled to a
+    /// fraction of the artwork and placed in the chosen corner.
+    private static func badged(_ base: RGBAImage, item: IconItem) -> RGBAImage {
+        guard let data = item.badgePNG, let badge0 = RGBAImage(data: data) else { return base }
+        let frac = max(0.05, min(1.0, item.settings.badgeScale))
+        let target = max(1, Int((Double(min(base.width, base.height)) * frac).rounded()))
+        let scale = min(Double(target) / Double(badge0.width), Double(target) / Double(badge0.height))
+        let bw = max(1, Int((Double(badge0.width) * scale).rounded()))
+        let bh = max(1, Int((Double(badge0.height) * scale).rounded()))
+        let badge = badge0.resized(to: bw, to: bh, filter: .smooth)
+        let margin = Int(Double(min(base.width, base.height)) * 0.04)
+        let o = item.settings.badgeCorner.origin(baseW: base.width, baseH: base.height,
+                                                  badgeW: bw, badgeH: bh, margin: margin)
+        return base.blending(badge, atX: o.x, atY: o.y)
     }
 
     /// Builds a project item from a source image file (PNG/JPEG/TIFF/HEIC…),

@@ -2,6 +2,34 @@
 import Foundation
 import AmigaIconKit
 
+/// Where a badge/emblem overlay sits on the artwork.
+enum BadgeCorner: String, Codable, CaseIterable {
+    case topLeft, topRight, bottomLeft, bottomRight, center
+
+    var label: String {
+        switch self {
+        case .topLeft: return "Top Left"
+        case .topRight: return "Top Right"
+        case .bottomLeft: return "Bottom Left"
+        case .bottomRight: return "Bottom Right"
+        case .center: return "Center"
+        }
+    }
+
+    /// Top-left origin to stamp a `badgeW × badgeH` overlay onto a `baseW × baseH`
+    /// image, inset by `margin`.
+    func origin(baseW: Int, baseH: Int, badgeW: Int, badgeH: Int, margin: Int) -> (x: Int, y: Int) {
+        let maxX = max(0, baseW - badgeW), maxY = max(0, baseH - badgeH)
+        switch self {
+        case .topLeft:     return (margin, margin)
+        case .topRight:    return (maxX - margin, margin)
+        case .bottomLeft:  return (margin, maxY - margin)
+        case .bottomRight: return (maxX - margin, maxY - margin)
+        case .center:      return (maxX / 2, maxY / 2)
+        }
+    }
+}
+
 /// Per-icon render settings. Defaults follow the conventions discussed:
 /// a small, few-colour planar image for OS1–3, and a 48×48-in-54×54 24-bit
 /// GlowIcon for OS3.5+ with an auto-generated glow on the clicked state.
@@ -31,6 +59,10 @@ struct RenderSettings: Codable, Equatable {
     // Image quality
     var resample: ResampleFilter = .smooth
     var planarDither: DitherMode = .floydSteinberg
+
+    // Badge / emblem overlay placement (the image itself is on IconItem)
+    var badgeCorner: BadgeCorner = .bottomRight
+    var badgeScale: Double = 0.45 // fraction of the artwork's smaller side
 
     // Misc
     var writeNewIcons = false // experimental
@@ -79,6 +111,8 @@ struct IconItem: Codable, Identifiable, Equatable {
     var normalPNG: Data?
     /// Original clicked-state artwork, if the user provided one explicitly.
     var clickedPNG: Data?
+    /// Optional badge/emblem overlaid on the artwork (full-res PNG).
+    var badgePNG: Data?
     /// CoreImage effect stack applied (non-destructively) to the originals.
     var effects: [EffectInstance] = []
     var settings = RenderSettings()
@@ -116,6 +150,8 @@ extension RenderSettings {
         palette        = try c.decodeIfPresent(WorkbenchPalette.self, forKey: .palette) ?? d.palette
         resample       = try c.decodeIfPresent(ResampleFilter.self, forKey: .resample) ?? d.resample
         planarDither   = try c.decodeIfPresent(DitherMode.self, forKey: .planarDither) ?? d.planarDither
+        badgeCorner    = try c.decodeIfPresent(BadgeCorner.self, forKey: .badgeCorner) ?? d.badgeCorner
+        badgeScale     = try c.decodeIfPresent(Double.self, forKey: .badgeScale) ?? d.badgeScale
         writeNewIcons  = try c.decodeIfPresent(Bool.self, forKey: .writeNewIcons) ?? d.writeNewIcons
         defaultTool    = try c.decodeIfPresent(String.self, forKey: .defaultTool) ?? d.defaultTool
         toolTypes      = try c.decodeIfPresent([String].self, forKey: .toolTypes) ?? d.toolTypes
@@ -131,6 +167,7 @@ extension IconItem {
         name       = try c.decodeIfPresent(String.self, forKey: .name) ?? d.name
         normalPNG  = try c.decodeIfPresent(Data.self, forKey: .normalPNG)
         clickedPNG = try c.decodeIfPresent(Data.self, forKey: .clickedPNG)
+        badgePNG   = try c.decodeIfPresent(Data.self, forKey: .badgePNG)
         effects    = try c.decodeIfPresent([EffectInstance].self, forKey: .effects) ?? d.effects
         settings   = try c.decodeIfPresent(RenderSettings.self, forKey: .settings) ?? d.settings
     }
