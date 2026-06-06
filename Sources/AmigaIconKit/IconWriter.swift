@@ -51,6 +51,12 @@ public struct IconOptions {
     public var outlineThickness: Int = 0
     public var outlineColor: RGB = RGB(0, 0, 0)
 
+    // --- Drop shadow (offset semi-transparent silhouette behind the art) ---
+    /// Shadow offset (down-right) in pixels; `0` disables it.
+    public var shadowOffset: Int = 0
+    public var shadowColor: RGB = RGB(0, 0, 0)
+    public var shadowAlpha: UInt8 = 128
+
     // --- NewIcons (experimental; off by default — see NewIcons.swift) ---
     public var writeNewIcons: Bool = false
 
@@ -156,12 +162,17 @@ public enum IconWriter {
                                  options: IconOptions) -> RGBAImage {
         var img = src.fitted(maxCanvas: maxCanvas, maxContent: maxContent,
                              preserveAspect: options.preserveAspectRatio, filter: options.resampleFilter)
+        let margin = max(1, (maxCanvas - maxContent) / 2)
         if options.outlineThickness > 0 {
             // Clamp to the available margin so the stroke isn't clipped at the edge.
-            let margin = max(1, (maxCanvas - maxContent) / 2)
-            let t = min(options.outlineThickness, margin)
             img = img.outlined(color: (options.outlineColor.r, options.outlineColor.g, options.outlineColor.b),
-                               thickness: t)
+                               thickness: min(options.outlineThickness, margin))
+        }
+        if options.shadowOffset > 0 {
+            let d = min(options.shadowOffset, margin) // keep the shadow within the margin
+            img = img.droppingShadow(dx: d, dy: d,
+                                     color: (options.shadowColor.r, options.shadowColor.g, options.shadowColor.b),
+                                     alpha: options.shadowAlpha)
         }
         return img
     }

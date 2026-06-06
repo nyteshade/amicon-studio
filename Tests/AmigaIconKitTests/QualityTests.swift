@@ -151,6 +151,16 @@ final class QualityTests: XCTestCase {
         XCTAssertFalse(try paletteHasRed(off))
     }
 
+    func testDropShadowOffsets() {
+        var img = RGBAImage(width: 6, height: 6)
+        img.setPixel(2, 2, 255, 255, 255, 255)
+        let s = img.droppingShadow(dx: 1, dy: 1, color: (0, 0, 0), alpha: 128)
+        XCTAssertEqual(s.pixel(2, 2).r, 255) // artwork stays on top
+        XCTAssertEqual(s.pixel(3, 3).a, 128) // shadow offset down-right
+        XCTAssertEqual(s.pixel(3, 3).r, 0)
+        XCTAssertEqual(s.pixel(0, 0).a, 0)   // elsewhere transparent
+    }
+
     // MARK: - Non-square canvas (preserve aspect)
 
     /// A wide source with `preserveAspectRatio` yields a non-square canvas that

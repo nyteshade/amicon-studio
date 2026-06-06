@@ -140,6 +140,26 @@ public extension RGBAImage {
         return out
     }
 
+    /// Returns the image with a drop shadow behind it: the opaque silhouette,
+    /// recoloured and made semi-transparent, offset by `(dx, dy)`, with the
+    /// original artwork composited back on top. Needs that much transparent
+    /// margin on the offset side or the shadow is clipped.
+    func droppingShadow(dx: Int, dy: Int, color: (r: UInt8, g: UInt8, b: UInt8) = (0, 0, 0),
+                        alpha: UInt8 = 128, alphaThreshold: UInt8 = 128) -> RGBAImage {
+        guard (dx != 0 || dy != 0), alpha > 0 else { return self }
+        var shadow = RGBAImage(width: width, height: height)
+        for y in 0..<height {
+            for x in 0..<width {
+                let sx = x - dx, sy = y - dy
+                guard sx >= 0, sx < width, sy >= 0, sy < height else { continue }
+                if pixel(sx, sy).a >= alphaThreshold {
+                    shadow.setPixel(x, y, color.r, color.g, color.b, alpha)
+                }
+            }
+        }
+        return shadow.blending(self, atX: 0, atY: 0)
+    }
+
     /// Composites `top` over a copy of this image using source-over alpha
     /// blending, with `top`'s upper-left corner at `(atX, atY)`. Parts of `top`
     /// that fall outside the bounds are clipped. Used to stamp a badge/emblem

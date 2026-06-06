@@ -280,6 +280,16 @@ struct OutputSettingsView: View {
                 }
 
                 Group {
+                    Text("Drop shadow").font(.caption.weight(.semibold))
+                    Stepper("Offset: \(settings.shadowOffset)px", value: $settings.shadowOffset, in: 0...16)
+                    if settings.shadowOffset > 0 {
+                        ColorPicker("Shadow colour", selection: hexColorBinding(\.shadowColorHex),
+                                    supportsOpacity: false)
+                        HStack { Text("Opacity"); Slider(value: $settings.shadowOpacity, in: 0...1) }
+                    }
+                }
+
+                Group {
                     Text("Planar (OS1–3 fallback)").font(.caption.weight(.semibold))
                     Stepper("Canvas: \(settings.planarCanvas)px", value: $settings.planarCanvas, in: 8...256)
                     Stepper("Artwork: \(settings.planarContent)px", value: $settings.planarContent, in: 8...256)
