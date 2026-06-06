@@ -12,7 +12,7 @@ public struct RGB: Equatable, Hashable {
 
 /// A palette-indexed image: one byte (index into `palette`) per pixel, plus an
 /// optional transparent colour index.
-public struct IndexedImage {
+public struct IndexedImage: Equatable {
     public let width: Int
     public let height: Int
     public var indices: [Int]      // width * height, each an index into palette
@@ -23,6 +23,27 @@ public struct IndexedImage {
     public var colorCount: Int { palette.count }
     /// Bits required to represent every palette index.
     public var depth: Int { max(1, Int(ceil(log2(Double(max(2, palette.count)))))) }
+}
+
+public extension IndexedImage {
+    /// Renders the indexed image back to a straight RGBA buffer using its own
+    /// palette. The `transparentIndex`, if any, is emitted as fully transparent
+    /// (alpha 0); every other index uses its palette colour at full opacity.
+    ///
+    /// This is the inverse of quantisation and the basis of an accurate
+    /// "what the Amiga actually shows" preview: it reflects the real, reduced
+    /// palette rather than the original full-colour source.
+    func rgba() -> RGBAImage {
+        var out = RGBAImage(width: width, height: height)
+        for i in 0 ..< (width * height) {
+            let idx = indices[i]
+            if idx == transparentIndex { continue } // leave fully transparent
+            let c = (idx >= 0 && idx < palette.count) ? palette[idx] : RGB(0, 0, 0)
+            let p = i * 4
+            out.pixels[p] = c.r; out.pixels[p + 1] = c.g; out.pixels[p + 2] = c.b; out.pixels[p + 3] = 255
+        }
+        return out
+    }
 }
 
 /// Reduces an `RGBAImage` to a palette of at most `maxColors` entries using a

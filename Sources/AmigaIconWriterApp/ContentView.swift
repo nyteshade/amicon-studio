@@ -272,6 +272,9 @@ struct IconCanvas: View {
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }
+                if let planar = previews.planar {
+                    PlanarFallbackPreview(image: planar, settings: item.wrappedValue.settings)
+                }
             }
             .padding(24)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -281,6 +284,40 @@ struct IconCanvas: View {
                 Text("Drop images into a new icon to begin").foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+}
+
+/// The classic OS1–3 planar fallback, shown crisp (no smoothing) so its small
+/// size and limited palette read honestly. This is the image old Workbenches
+/// render; the GlowIcon above is what OS3.5+ shows.
+struct PlanarFallbackPreview: View {
+    let image: NSImage
+    let settings: RenderSettings
+
+    private var caption: String {
+        let palette = settings.paletteName == "magicwb8" ? "MagicWB (8)" : "Workbench (4)"
+        return "\(settings.planarCanvas)×\(settings.planarCanvas) · \(palette)"
+    }
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Divider().frame(width: 220)
+            Text("OS 1.x–3.x planar fallback")
+                .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            ZStack {
+                CheckerboardBackground()
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                Image(nsImage: image)
+                    .resizable()
+                    .interpolation(.none)
+                    .scaledToFit()
+                    .padding(6)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(Color.secondary.opacity(0.4), lineWidth: 1)
+            }
+            .frame(width: 96, height: 96)
+            Text(caption).font(.caption2).foregroundStyle(.secondary)
         }
     }
 }

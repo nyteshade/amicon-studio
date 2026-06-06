@@ -33,28 +33,39 @@ private extension RGBAImage {
 /// item's `RenderSettings` and always works from the full-resolution originals.
 enum IconRenderer {
 
-    /// Composed preview images for the normal and clicked states, at the
-    /// ColorIcon canvas size.
-    static func previews(for item: IconItem) -> (normal: NSImage?, clicked: NSImage?) {
-        guard let nData = item.normalPNG,
-              let normal = RGBAImage.effected(from: nData, effects: item.effects) else {
-            return (nil, nil)
+    /// Accurate preview images for the unclicked/clicked states **and** the
+    /// classic planar fallback.
+    ///
+    /// Crucially, these are produced by encoding the real `.info` bytes and
+    /// decoding them back — so the preview shows exactly what gets written: the
+    /// reduced GlowIcon palette, the transparent index, and the low-colour
+    /// planar image, rather than the full-colour source. What you see is what
+    /// the Amiga gets.
+    static func previews(for item: IconItem) -> (normal: NSImage?, clicked: NSImage?, planar: NSImage?) {
+        guard let data = infoData(for: item),
+              let decoded = try? IconDecoder.decode([UInt8](data)) else {
+            return (nil, nil, nil)
         }
         let opts = item.settings.makeOptions()
-        let normRGBA = normal.centered(inCanvas: opts.colorCanvasSize, contentSize: opts.colorContentSize)
+        // The planar image carries no palette of its own; render it against the
+        // chosen Workbench palette, drawing the background index transparent.
+        let planarRGBA = decoded.planarNormal.rgba(palette: opts.planarPalette, transparentIndex: 0)
 
-        let clickedRGBA: RGBAImage?
-        if let cData = item.clickedPNG, let clicked = RGBAImage.effected(from: cData, effects: item.effects) {
-            clickedRGBA = clicked.centered(inCanvas: opts.colorCanvasSize, contentSize: opts.colorContentSize)
-        } else if opts.autoGlow {
-            let margin = (opts.colorCanvasSize - opts.colorContentSize) / 2
-            let r = max(1, min(opts.glowRadius, max(1, margin)))
-            clickedRGBA = normRGBA.addingGlow(radius: r,
-                                              color: (opts.glowColor.r, opts.glowColor.g, opts.glowColor.b))
+        // Unclicked: the GlowIcon if one was written, otherwise the planar truth.
+        let normal = (decoded.colorIconNormal?.rgba() ?? planarRGBA).nsImage
+
+        // Clicked: the GlowIcon selected state (explicit image or auto-glow),
+        // else an explicit planar selected image, else nothing.
+        let clicked: NSImage?
+        if let sel = decoded.colorIconSelected {
+            clicked = sel.rgba().nsImage
+        } else if let planarSel = decoded.planarSelected {
+            clicked = planarSel.rgba(palette: opts.planarPalette, transparentIndex: 0).nsImage
         } else {
-            clickedRGBA = nil
+            clicked = nil
         }
-        return (normRGBA.nsImage, clickedRGBA?.nsImage)
+
+        return (normal, clicked, planarRGBA.nsImage)
     }
 
     /// Builds the `.info` byte stream for a single icon, with effects applied.
