@@ -58,6 +58,11 @@ public struct IconOptions {
     /// (`< 2` = off) for a banded/retro look.
     public var posterizeLevels: Int = 0
 
+    // --- Orientation (applied to the source before fitting) ---
+    public var flipHorizontal: Bool = false
+    public var flipVertical: Bool = false
+    public var rotateQuarters: Int = 0 // clockwise 90° turns
+
     // --- NewIcons (experimental; off by default — see NewIcons.swift) ---
     public var writeNewIcons: Bool = false
 
@@ -182,8 +187,12 @@ public enum IconWriter {
     /// Fits `src` into the icon canvas and applies the optional solid outline.
     private static func composed(_ src: RGBAImage, maxCanvas: Int, maxContent: Int,
                                  options: IconOptions) -> RGBAImage {
-        var img = src.fitted(maxCanvas: maxCanvas, maxContent: maxContent,
-                             preserveAspect: options.preserveAspectRatio, filter: options.resampleFilter)
+        let source = (options.flipHorizontal || options.flipVertical || options.rotateQuarters % 4 != 0)
+            ? src.oriented(flipH: options.flipHorizontal, flipV: options.flipVertical,
+                           quarters: options.rotateQuarters)
+            : src
+        var img = source.fitted(maxCanvas: maxCanvas, maxContent: maxContent,
+                                preserveAspect: options.preserveAspectRatio, filter: options.resampleFilter)
         if options.posterizeLevels >= 2 { img = img.posterized(levels: options.posterizeLevels) }
         let margin = max(1, (maxCanvas - maxContent) / 2)
         if options.outlineThickness > 0 {

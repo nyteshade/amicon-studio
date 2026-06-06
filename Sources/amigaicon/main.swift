@@ -71,6 +71,8 @@ COLORICON / GLOWICON (OS3.5+, 24-bit):
   --no-compress          Store image/palette uncompressed (RLE is default)
   --preserve-aspect      Non-square canvas hugging the artwork's aspect ratio
   --posterize <n>        Quantize art to n levels/channel before reduction (off <2)
+  --flip-h / --flip-v    Flip the artwork horizontally / vertically
+  --rotate <deg>         Rotate clockwise: 90 | 180 | 270
 
 GLOW (clicked state, when --selected is not given):
   --no-glow              Don't auto-generate a glowing clicked state
@@ -133,6 +135,9 @@ while !args.isEmpty {
     case "--no-compress": options.compressColorIcon = false
     case "--preserve-aspect": options.preserveAspectRatio = true
     case "--posterize": options.posterizeLevels = Int(nextValue(arg)) ?? 0
+    case "--flip-h": options.flipHorizontal = true
+    case "--flip-v": options.flipVertical = true
+    case "--rotate": options.rotateQuarters = ((Int(nextValue(arg)) ?? 0) / 90) % 4
     case "--resample":
         let v = nextValue(arg).lowercased()
         options.resampleFilter = (v == "nearest" || v == "none") ? .nearest : .smooth

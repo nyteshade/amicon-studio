@@ -161,6 +161,24 @@ final class QualityTests: XCTestCase {
         XCTAssertEqual(s.pixel(0, 0).a, 0)   // elsewhere transparent
     }
 
+    func testFlipHorizontal() {
+        var img = RGBAImage(width: 2, height: 1)
+        img.setPixel(0, 0, 9, 0, 0, 255)
+        let f = img.flippedHorizontally()
+        XCTAssertEqual(f.pixel(1, 0).r, 9) // moved to the right edge
+        XCTAssertEqual(f.pixel(0, 0).r, 0)
+    }
+
+    func testRotate90SwapsDimensions() {
+        var img = RGBAImage(width: 3, height: 2)
+        img.setPixel(0, 0, 9, 0, 0, 255)
+        let r = img.rotated90(clockwise: true)
+        XCTAssertEqual(r.width, 2); XCTAssertEqual(r.height, 3)
+        XCTAssertEqual(r.pixel(1, 0).r, 9) // (0,0) → (height-1, 0)
+        // Four turns return to the original.
+        XCTAssertEqual(img.oriented(flipH: false, flipV: false, quarters: 4), img)
+    }
+
     func testPosterizeReducesLevels() {
         let img = RGBAImage(width: 1, height: 1, pixels: [100, 200, 50, 255])
         let p = img.posterized(levels: 2).pixel(0, 0) // 2 levels → 0 or 255 per channel

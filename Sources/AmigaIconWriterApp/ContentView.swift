@@ -283,6 +283,17 @@ struct OutputSettingsView: View {
                 }
 
                 Group {
+                    Text("Orientation").font(.caption.weight(.semibold))
+                    HStack {
+                        Toggle("Flip H", isOn: $settings.flipH).toggleStyle(.button)
+                        Toggle("Flip V", isOn: $settings.flipV).toggleStyle(.button)
+                        Button { settings.rotateQuarters = (settings.rotateQuarters + 1) % 4 } label: {
+                            Label("\(settings.rotateQuarters * 90)°", systemImage: "rotate.right")
+                        }
+                    }
+                }
+
+                Group {
                     Text("Shadows").font(.caption.weight(.semibold))
                     ShadowsEditor(shadows: $settings.shadows)
                 }

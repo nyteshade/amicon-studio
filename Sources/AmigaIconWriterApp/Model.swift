@@ -45,6 +45,11 @@ struct RenderSettings: Codable, Equatable {
     // Posterize levels per channel before reduction (0/1 = off)
     var posterizeLevels = 0
 
+    // Orientation (applied to the source before fitting)
+    var flipH = false
+    var flipV = false
+    var rotateQuarters = 0
+
     // Classic planar (OS1–3): smaller, as was typical
     var planarCanvas = 40
     var planarContent = 36
@@ -80,6 +85,9 @@ struct RenderSettings: Codable, Equatable {
         if let c = RGB(hex: outlineColorHex) { o.outlineColor = c }
         o.shadows = shadows
         o.posterizeLevels = posterizeLevels
+        o.flipHorizontal = flipH
+        o.flipVertical = flipV
+        o.rotateQuarters = rotateQuarters
         o.planarCanvasSize = planarCanvas
         o.planarContentSize = planarContent
         o.planarPalette = palette
@@ -145,6 +153,9 @@ extension RenderSettings {
         outlineColorHex  = try c.decodeIfPresent(String.self, forKey: .outlineColorHex) ?? d.outlineColorHex
         shadows        = try c.decodeIfPresent([Shadow].self, forKey: .shadows) ?? d.shadows
         posterizeLevels = try c.decodeIfPresent(Int.self, forKey: .posterizeLevels) ?? d.posterizeLevels
+        flipH = try c.decodeIfPresent(Bool.self, forKey: .flipH) ?? d.flipH
+        flipV = try c.decodeIfPresent(Bool.self, forKey: .flipV) ?? d.flipV
+        rotateQuarters = try c.decodeIfPresent(Int.self, forKey: .rotateQuarters) ?? d.rotateQuarters
         planarCanvas   = try c.decodeIfPresent(Int.self, forKey: .planarCanvas) ?? d.planarCanvas
         planarContent  = try c.decodeIfPresent(Int.self, forKey: .planarContent) ?? d.planarContent
         palette        = try c.decodeIfPresent(WorkbenchPalette.self, forKey: .palette) ?? d.palette

@@ -140,6 +140,43 @@ public extension RGBAImage {
         return out
     }
 
+    func flippedHorizontally() -> RGBAImage {
+        var out = RGBAImage(width: width, height: height)
+        for y in 0..<height { for x in 0..<width {
+            let p = pixel(width - 1 - x, y); out.setPixel(x, y, p.r, p.g, p.b, p.a)
+        } }
+        return out
+    }
+
+    func flippedVertically() -> RGBAImage {
+        var out = RGBAImage(width: width, height: height)
+        for y in 0..<height { for x in 0..<width {
+            let p = pixel(x, height - 1 - y); out.setPixel(x, y, p.r, p.g, p.b, p.a)
+        } }
+        return out
+    }
+
+    /// Rotates by 90° (dimensions swap).
+    func rotated90(clockwise: Bool = true) -> RGBAImage {
+        var out = RGBAImage(width: height, height: width)
+        for y in 0..<height { for x in 0..<width {
+            let p = pixel(x, y)
+            if clockwise { out.setPixel(height - 1 - y, x, p.r, p.g, p.b, p.a) }
+            else { out.setPixel(y, width - 1 - x, p.r, p.g, p.b, p.a) }
+        } }
+        return out
+    }
+
+    /// Applies flips then `quarters` clockwise 90° turns (non-destructive helper).
+    func oriented(flipH: Bool, flipV: Bool, quarters: Int) -> RGBAImage {
+        var img = self
+        if flipH { img = img.flippedHorizontally() }
+        if flipV { img = img.flippedVertically() }
+        let q = ((quarters % 4) + 4) % 4
+        for _ in 0..<q { img = img.rotated90(clockwise: true) }
+        return img
+    }
+
     /// Quantises each RGB channel to `levels` evenly-spaced steps (alpha kept),
     /// for a deliberate banded/retro look. `levels < 2` returns the image
     /// unchanged.
