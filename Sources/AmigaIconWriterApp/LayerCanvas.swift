@@ -18,6 +18,7 @@ struct LayerCanvas: View {
     @State private var selection: UUID?
     @State private var renamingID: UUID?
     @State private var dragAnchor: (id: UUID, x: Double, y: Double)?
+    @State private var pickingSymbol = false
     private let space = "layerCanvas"
 
     private var selectedIndex: Int? { item.layers.firstIndex { $0.id == selection } }
@@ -132,6 +133,7 @@ struct LayerCanvas: View {
     private var controls: some View {
         HStack(spacing: 8) {
             Button { addViaPanel() } label: { Label("Add Layer", systemImage: "plus") }
+            Button { pickingSymbol = true } label: { Label("Add Symbol", systemImage: "star") }
             Button(role: .destructive) { removeSelected() } label: { Label("Remove", systemImage: "trash") }
                 .disabled(selection == nil)
             Spacer()
@@ -139,6 +141,13 @@ struct LayerCanvas: View {
                 .font(.caption).foregroundStyle(.secondary)
         }
         .frame(width: size)
+        .sheet(isPresented: $pickingSymbol) {
+            SymbolPicker { data, name in
+                let png = RGBAImage(data: data)?.pngData() ?? data
+                var l = Layer(png: png); l.name = name; l.x = 0.5; l.y = 0.5
+                item.layers.append(l); selection = l.id
+            }
+        }
     }
 
     @ViewBuilder

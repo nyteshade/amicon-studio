@@ -31,6 +31,9 @@ tests (`swift test`); this list is everything else. Grown as features land.
 - [ ] Inspector: name, opacity, size, blend, target, visibility — live-update preview.
 - [ ] Blend modes look correct (multiply/screen/overlay/darken/lighten/add).
 - [ ] Drop an image onto the layer canvas to add a layer.
+- [ ] Add Symbol: search filters the list; typing an exact SF Symbol name works; invalid names are skipped.
+- [ ] Symbol Tint colour applies; Multicolor renders the symbol's intrinsic colours.
+- [ ] A picked symbol becomes a layer (opacity/blend/position/per-state all apply).
 
 ## Effects
 - [ ] CoreImage effect stack: add/adjust each; live preview on both states.
