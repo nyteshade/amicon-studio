@@ -14,21 +14,6 @@ extension RGBAImage {
 
 private let sharedCIContext = CIContext(options: [.workingColorSpace: NSNull()])
 
-private extension RGBAImage {
-    /// Loads a stored original and runs the CoreImage effect stack over it,
-    /// returning a fresh RGBA buffer ready for the kit's compositor.
-    static func effected(from data: Data, effects: [EffectInstance]) -> RGBAImage? {
-        guard let ci = CIImage(data: data) else { return RGBAImage(data: data) }
-        let out = EffectPipeline.apply(effects, to: ci)
-        let rect = ci.extent.isInfinite ? out.extent : ci.extent
-        guard !rect.isInfinite, !rect.isNull, !rect.isEmpty,
-              let cg = sharedCIContext.createCGImage(out, from: rect) else {
-            return RGBAImage(data: data)
-        }
-        return RGBAImage(cgImage: cg)
-    }
-}
-
 /// Bridges the app's stored originals to AmigaIconKit for both live preview and
 /// `.info` export. All composition (centre-in-canvas, glow) is driven by the
 /// item's `RenderSettings` and always works from the full-resolution originals.
@@ -44,11 +29,11 @@ enum IconRenderer {
     /// the Amiga gets.
     static func previews(for item: IconItem) -> (normal: NSImage?, clicked: NSImage?, planar: NSImage?) {
         guard let nData = item.normalPNG,
-              let normal = RGBAImage.effected(from: nData, effects: item.effects) else {
+              let normal = effected(from: nData, effects: item.effects) else {
             return (nil, nil, nil)
         }
         let opts = item.settings.makeOptions()
-        let selected = item.clickedPNG.flatMap { RGBAImage.effected(from: $0, effects: item.effects) }
+        let selected = item.clickedPNG.flatMap { effected(from: $0, effects: item.effects) }
 
         // Encode then decode, so the colour (GlowIcon) states reflect the real
         // reduced palette and transparent index that get written.
@@ -86,11 +71,24 @@ enum IconRenderer {
         return indexed.rgba()
     }
 
+    /// Loads a stored original and runs the CoreImage effect stack over it,
+    /// returning a fresh RGBA buffer ready for the kit's compositor.
+    private static func effected(from data: Data, effects: [EffectInstance]) -> RGBAImage? {
+        guard let ci = CIImage(data: data) else { return RGBAImage(data: data) }
+        let out = EffectPipeline.apply(effects, to: ci)
+        let rect = ci.extent.isInfinite ? out.extent : ci.extent
+        guard !rect.isInfinite, !rect.isNull, !rect.isEmpty,
+              let cg = sharedCIContext.createCGImage(out, from: rect) else {
+            return RGBAImage(data: data)
+        }
+        return RGBAImage(cgImage: cg)
+    }
+
     /// Builds the `.info` byte stream for a single icon, with effects applied.
     static func infoData(for item: IconItem) -> Data? {
         guard let nData = item.normalPNG,
-              let normal = RGBAImage.effected(from: nData, effects: item.effects) else { return nil }
-        let selected = item.clickedPNG.flatMap { RGBAImage.effected(from: $0, effects: item.effects) }
+              let normal = effected(from: nData, effects: item.effects) else { return nil }
+        let selected = item.clickedPNG.flatMap { effected(from: $0, effects: item.effects) }
         guard let bytes = try? IconWriter.build(normal: normal, selected: selected,
                                                 options: item.settings.makeOptions()) else { return nil }
         return Data(bytes)
