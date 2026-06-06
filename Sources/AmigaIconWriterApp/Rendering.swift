@@ -100,20 +100,24 @@ enum IconRenderer {
         return Data(bytes)
     }
 
-    /// Stamps the item's badge/emblem (if any) onto a base image, scaled to a
-    /// fraction of the artwork and placed in the chosen corner.
+    /// Stamps the item's badges onto a base image, in order — each scaled to a
+    /// fraction of the artwork and centred at its normalised position.
     private static func badged(_ base: RGBAImage, item: IconItem) -> RGBAImage {
-        guard let data = item.badgePNG, let badge0 = RGBAImage(data: data) else { return base }
-        let frac = max(0.05, min(1.0, item.settings.badgeScale))
-        let target = max(1, Int((Double(min(base.width, base.height)) * frac).rounded()))
-        let scale = min(Double(target) / Double(badge0.width), Double(target) / Double(badge0.height))
-        let bw = max(1, Int((Double(badge0.width) * scale).rounded()))
-        let bh = max(1, Int((Double(badge0.height) * scale).rounded()))
-        let badge = badge0.resized(to: bw, to: bh, filter: .smooth)
-        let margin = Int(Double(min(base.width, base.height)) * 0.04)
-        let o = item.settings.badgeCorner.origin(baseW: base.width, baseH: base.height,
-                                                  badgeW: bw, badgeH: bh, margin: margin)
-        return base.blending(badge, atX: o.x, atY: o.y)
+        guard !item.badges.isEmpty else { return base }
+        var out = base
+        let minSide = Double(min(base.width, base.height))
+        for b in item.badges {
+            guard let img0 = RGBAImage(data: b.png) else { continue }
+            let target = max(1, Int((minSide * max(0.02, min(2.0, b.scale))).rounded()))
+            let s = min(Double(target) / Double(img0.width), Double(target) / Double(img0.height))
+            let bw = max(1, Int((Double(img0.width) * s).rounded()))
+            let bh = max(1, Int((Double(img0.height) * s).rounded()))
+            let badge = img0.resized(to: bw, to: bh, filter: .smooth)
+            let cx = Int((b.x * Double(base.width)).rounded()) - bw / 2
+            let cy = Int((b.y * Double(base.height)).rounded()) - bh / 2
+            out = out.blending(badge, atX: cx, atY: cy)
+        }
+        return out
     }
 
     /// Builds a project item from a source image file (PNG/JPEG/TIFF/HEIC…),
