@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Info.plist for the macOS app target.
+
+  When you create the SwiftUI app in Xcode (see README → "Building the macOS
+  app"), use this as the target's Info.plist, or copy the document-type and
+  exported-UTI entries into your generated one. They register the
+  `.amigaicons` project document type used by IconProjectDocument.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleName</key>
+    <string>AmigaIconWriter</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.nyteshade.amigaiconwriter</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>13.0</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+
+    <!-- Document type: AmigaIconWriter project files -->
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Amiga Icon Project</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>LSHandlerRank</key>
+            <string>Owner</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>com.nyteshade.amigaiconwriter.project</string>
+            </array>
+        </dict>
+    </array>
+
+    <!-- Exported UTI for the project document -->
+    <key>UTExportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>com.nyteshade.amigaiconwriter.project</string>
+            <key>UTTypeDescription</key>
+            <string>Amiga Icon Project</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.data</string>
+                <string>public.content</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>amigaicons</string>
+                </array>
+            </dict>
+        </dict>
+    </array>
+</dict>
+</plist>
