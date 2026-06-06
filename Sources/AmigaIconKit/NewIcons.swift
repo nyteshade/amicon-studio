@@ -61,8 +61,60 @@ public enum NewIcons {
         payload += transferEncode(bits.bytes)
 
         // --- Split into IMn= lines. ---
-        let text = String(decoding: payload, as: UTF8.self)
+        // Latin-1: tool types are 8-bit, and the transfer encoding emits bytes up
+        // to 0xD0. Building the string from raw scalars keeps every byte intact
+        // (UTF-8 would mangle anything > 0x7F).
+        let text = String(String.UnicodeScalarView(payload.map { Unicode.Scalar($0) }))
         return chunk(text, size: maxLineLength).map { "\(key)=\($0)" }
+    }
+
+    // MARK: - Decoding (round-trip / validation)
+
+    /// Decodes NewIcons images out of an icon's tool types. Pairs with `encode`;
+    /// gathers the `IM1=`/`IM2=` continuation lines and reverses the transfer
+    /// encoding, palette and RLE.
+    ///
+    /// ⚠️ Like the encoder this is unverified against a real Workbench, and the
+    /// transparent-pen index in particular is a best guess (index 0). Use it for
+    /// round-trip validation of the codec, not as a source of truth.
+    public static func decode(_ toolTypes: [String]) -> (normal: IndexedImage?, selected: IndexedImage?) {
+        func payload(_ key: String) -> [UInt8]? {
+            let prefix = key + "="
+            let parts = toolTypes.filter { $0.hasPrefix(prefix) }.map { String($0.dropFirst(prefix.count)) }
+            guard !parts.isEmpty else { return nil }
+            return parts.joined().unicodeScalars.map { UInt8($0.value & 0xFF) }
+        }
+        return (payload("IM1").flatMap(decodeImage), payload("IM2").flatMap(decodeImage))
+    }
+
+    static func decodeImage(_ payload: [UInt8]) -> IndexedImage? {
+        guard payload.count >= 5 else { return nil }
+        let hasTransparency = payload[0] == UInt8(ascii: "B")
+        let width = Int(payload[1]) - 0x21
+        let height = Int(payload[2]) - 0x21
+        let numColors = ((Int(payload[3]) - 0x21) << 6) | (Int(payload[4]) - 0x21)
+        guard width > 0, height > 0, numColors > 0 else { return nil }
+
+        let body = transferDecode(Array(payload[5...]))
+        guard body.count >= numColors * 3 else { return nil }
+        var palette: [RGB] = []
+        palette.reserveCapacity(numColors)
+        for i in 0..<numColors { palette.append(RGB(body[i * 3], body[i * 3 + 1], body[i * 3 + 2])) }
+
+        let depth = max(1, Int(ceil(log2(Double(max(2, numColors))))))
+        let indices = PackBits.unpackRLE(Array(body[(numColors * 3)...]), itemBits: depth, count: width * height)
+        return IndexedImage(width: width, height: height, indices: indices,
+                            palette: palette, transparentIndex: hasTransparency ? 0 : nil)
+    }
+
+    /// Inverse of `transferEncode`: maps each printable byte back to its 7-bit
+    /// value and re-assembles the original byte stream (trailing pad bits, which
+    /// the RLE decoder ignores, may remain).
+    static func transferDecode(_ bytes: [UInt8]) -> [UInt8] {
+        var bw = BitWriter()
+        for b in bytes { if let v = dec7(b) { bw.writeBits(v, 7) } }
+        bw.align()
+        return bw.bytes
     }
 
     // MARK: - 7-bit printable transfer encoding

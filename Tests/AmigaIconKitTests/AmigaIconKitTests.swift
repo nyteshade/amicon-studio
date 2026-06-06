@@ -121,6 +121,23 @@ final class NewIconsTests: XCTestCase {
         XCTAssertFalse(lines.isEmpty)
         XCTAssertTrue(lines[0].hasPrefix("IM1="))
     }
+
+    /// The NewIcons codec (header + Latin-1 transfer encoding + palette + RLE)
+    /// must round-trip an opaque image exactly. Transparency-index recovery is
+    /// unverified, so this uses a fully opaque source.
+    func testNewIconsRoundTrip() {
+        var img = RGBAImage(width: 8, height: 6)
+        for y in 0..<6 { for x in 0..<8 { img.setPixel(x, y, UInt8(x * 30), UInt8(y * 40), 60, 255) } }
+        let q = ColorQuantizer.quantize(img, maxColors: 8) // opaque -> no transparent index
+        XCTAssertNil(q.transparentIndex)
+
+        let lines = NewIcons.encode(normal: q, selected: nil)
+        let decoded = NewIcons.decode(lines).normal
+        XCTAssertEqual(decoded?.width, q.width)
+        XCTAssertEqual(decoded?.height, q.height)
+        XCTAssertEqual(decoded?.palette, q.palette)
+        XCTAssertEqual(decoded?.indices, q.indices)
+    }
 }
 
 // MARK: - byte helpers

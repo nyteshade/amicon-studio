@@ -215,6 +215,11 @@ default**. If you enable it, test the result on real hardware or an emulator
 / RLE in that one isolated file. The Classic planar and GlowIcon paths are
 **not** experimental and are covered by tests.
 
+The codec is now at least **self-consistent**: `NewIcons.decode` reverses
+`encode`, and a round-trip test proves an opaque image survives the header,
+Latin-1 transfer encoding, palette and RLE intact. (The transparent-pen index
+is still a best guess, and none of it is verified against a real Workbench.)
+
 ## Format references
 
 - `struct DiskObject` / `Gadget` / `Image` — *Amiga ROM Kernel Reference
