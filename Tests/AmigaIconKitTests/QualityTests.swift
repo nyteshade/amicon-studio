@@ -161,6 +161,15 @@ final class QualityTests: XCTestCase {
         XCTAssertEqual(s.pixel(0, 0).a, 0)   // elsewhere transparent
     }
 
+    func testPosterizeReducesLevels() {
+        let img = RGBAImage(width: 1, height: 1, pixels: [100, 200, 50, 255])
+        let p = img.posterized(levels: 2).pixel(0, 0) // 2 levels → 0 or 255 per channel
+        XCTAssertEqual(p.r, 0)    // 100 → nearest of {0,255} = 0
+        XCTAssertEqual(p.g, 255)  // 200 → 255
+        XCTAssertEqual(p.b, 0)    // 50 → 0
+        XCTAssertEqual(p.a, 255)  // alpha preserved
+    }
+
     func testInnerShadowDarkensLeadingEdge() {
         var img = RGBAImage(width: 8, height: 8)
         for y in 2..<6 { for x in 2..<6 { img.setPixel(x, y, 255, 255, 255, 255) } } // 4×4 white block

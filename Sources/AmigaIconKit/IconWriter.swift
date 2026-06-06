@@ -54,6 +54,10 @@ public struct IconOptions {
     // --- Shadows (any number, outer and/or inner), applied in order ---
     public var shadows: [Shadow] = []
 
+    /// Posterize the artwork to this many levels per channel before reduction
+    /// (`< 2` = off) for a banded/retro look.
+    public var posterizeLevels: Int = 0
+
     // --- NewIcons (experimental; off by default — see NewIcons.swift) ---
     public var writeNewIcons: Bool = false
 
@@ -180,6 +184,7 @@ public enum IconWriter {
                                  options: IconOptions) -> RGBAImage {
         var img = src.fitted(maxCanvas: maxCanvas, maxContent: maxContent,
                              preserveAspect: options.preserveAspectRatio, filter: options.resampleFilter)
+        if options.posterizeLevels >= 2 { img = img.posterized(levels: options.posterizeLevels) }
         let margin = max(1, (maxCanvas - maxContent) / 2)
         if options.outlineThickness > 0 {
             // Clamp to the available margin so the stroke isn't clipped at the edge.

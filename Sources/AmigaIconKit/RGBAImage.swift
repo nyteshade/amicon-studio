@@ -140,6 +140,23 @@ public extension RGBAImage {
         return out
     }
 
+    /// Quantises each RGB channel to `levels` evenly-spaced steps (alpha kept),
+    /// for a deliberate banded/retro look. `levels < 2` returns the image
+    /// unchanged.
+    func posterized(levels: Int) -> RGBAImage {
+        guard levels >= 2 else { return self }
+        let n = Double(levels - 1)
+        var lut = [UInt8](repeating: 0, count: 256)
+        for v in 0...255 { lut[v] = u8((Double(v) / 255.0 * n).rounded() / n * 255.0) }
+        var out = self
+        for i in 0..<(width * height) {
+            out.pixels[i * 4] = lut[Int(pixels[i * 4])]
+            out.pixels[i * 4 + 1] = lut[Int(pixels[i * 4 + 1])]
+            out.pixels[i * 4 + 2] = lut[Int(pixels[i * 4 + 2])]
+        }
+        return out
+    }
+
     /// A standalone layer (transparent except where filled) holding the opaque
     /// silhouette recoloured at `alpha` and offset by `(dx, dy)` — the building
     /// block for outer drop shadows. Compose it *behind* the art.

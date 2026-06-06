@@ -42,6 +42,9 @@ struct RenderSettings: Codable, Equatable {
     // Shadows (any number; outer and/or inner)
     var shadows: [Shadow] = []
 
+    // Posterize levels per channel before reduction (0/1 = off)
+    var posterizeLevels = 0
+
     // Classic planar (OS1–3): smaller, as was typical
     var planarCanvas = 40
     var planarContent = 36
@@ -76,6 +79,7 @@ struct RenderSettings: Codable, Equatable {
         o.outlineThickness = outlineThickness
         if let c = RGB(hex: outlineColorHex) { o.outlineColor = c }
         o.shadows = shadows
+        o.posterizeLevels = posterizeLevels
         o.planarCanvasSize = planarCanvas
         o.planarContentSize = planarContent
         o.planarPalette = palette
@@ -140,6 +144,7 @@ extension RenderSettings {
         outlineThickness = try c.decodeIfPresent(Int.self, forKey: .outlineThickness) ?? d.outlineThickness
         outlineColorHex  = try c.decodeIfPresent(String.self, forKey: .outlineColorHex) ?? d.outlineColorHex
         shadows        = try c.decodeIfPresent([Shadow].self, forKey: .shadows) ?? d.shadows
+        posterizeLevels = try c.decodeIfPresent(Int.self, forKey: .posterizeLevels) ?? d.posterizeLevels
         planarCanvas   = try c.decodeIfPresent(Int.self, forKey: .planarCanvas) ?? d.planarCanvas
         planarContent  = try c.decodeIfPresent(Int.self, forKey: .planarContent) ?? d.planarContent
         palette        = try c.decodeIfPresent(WorkbenchPalette.self, forKey: .palette) ?? d.palette
