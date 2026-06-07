@@ -178,19 +178,17 @@ struct ToolSidebar: View {
 
     var body: some View {
         if let item {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+            Form {
+                Section("Icon") {
                     TextField("Name", text: item.name)
-                        .textFieldStyle(.roundedBorder)
-                        .font(.headline)
-
+                }
+                Section("Effects") {
                     effectsPalette(item)
                     effectStack(item)
-                    Divider()
-                    OutputSettingsView(settings: item.settings)
                 }
-                .padding(12)
+                OutputSettingsView(settings: item.settings)
             }
+            .formStyle(.grouped)
         } else {
             VStack(spacing: 8) {
                 Image(systemName: "square.dashed").font(.largeTitle).foregroundStyle(.secondary)
@@ -202,33 +200,24 @@ struct ToolSidebar: View {
 
     @ViewBuilder
     private func effectsPalette(_ item: Binding<IconItem>) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("EFFECTS").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 6) {
-                ForEach(EffectKind.allCases) { kind in
-                    Button {
-                        item.wrappedValue.effects.append(EffectInstance(kind))
-                    } label: {
-                        Image(systemName: kind.systemImage)
-                            .frame(width: 34, height: 30)
-                    }
-                    .buttonStyle(.bordered)
-                    .help(kind.displayName)
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 6) {
+            ForEach(EffectKind.allCases) { kind in
+                Button {
+                    item.wrappedValue.effects.append(EffectInstance(kind))
+                } label: {
+                    Image(systemName: kind.systemImage).frame(width: 34, height: 30)
                 }
+                .buttonStyle(.bordered)
+                .help(kind.displayName)
             }
         }
     }
 
     @ViewBuilder
     private func effectStack(_ item: Binding<IconItem>) -> some View {
-        if !item.wrappedValue.effects.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("APPLIED").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                ForEach(item.effects) { $fx in
-                    EffectRow(fx: $fx) {
-                        item.wrappedValue.effects.removeAll { $0.id == fx.id }
-                    }
-                }
+        ForEach(item.effects) { $fx in
+            EffectRow(fx: $fx) {
+                item.wrappedValue.effects.removeAll { $0.id == fx.id }
             }
         }
     }
@@ -271,8 +260,8 @@ struct OutputSettingsView: View {
     @Binding var settings: RenderSettings
 
     var body: some View {
-        DisclosureGroup("Output Settings") {
-            VStack(alignment: .leading, spacing: 10) {
+        Group {
+            Section("Icon type") {
                 Picker("Type", selection: $settings.iconType) {
                     Text("Disk").tag(Int(IconType.disk.rawValue))
                     Text("Drawer").tag(Int(IconType.drawer.rawValue))
@@ -281,93 +270,78 @@ struct OutputSettingsView: View {
                     Text("Trashcan").tag(Int(IconType.garbage.rawValue))
                     Text("AppIcon").tag(Int(IconType.appIcon.rawValue))
                 }
+            }
 
-                Group {
-                    Text("GlowIcon (OS3.5+, 24-bit)").font(.caption.weight(.semibold))
-                    Toggle("Write ColorIcon", isOn: $settings.writeColorIcon)
-                    Stepper("Width: \(settings.colorWidth)px", value: $settings.colorWidth, in: 8...256)
-                    Stepper("Height: \(settings.colorHeight)px", value: $settings.colorHeight, in: 8...256)
-                    Stepper("Margin: \(settings.colorMargin)px", value: $settings.colorMargin, in: 0...64)
-                    Picker("Fit", selection: $settings.fitMode) {
-                        ForEach(FitMode.allCases, id: \.self) { Text($0.rawValue.capitalized).tag($0) }
+            Section("GlowIcon (OS3.5+, 24-bit)") {
+                Toggle("Write ColorIcon", isOn: $settings.writeColorIcon)
+                Stepper("Width: \(settings.colorWidth) px", value: $settings.colorWidth, in: 8...256)
+                Stepper("Height: \(settings.colorHeight) px", value: $settings.colorHeight, in: 8...256)
+                Stepper("Margin: \(settings.colorMargin) px", value: $settings.colorMargin, in: 0...64)
+                Picker("Fit", selection: $settings.fitMode) {
+                    ForEach(FitMode.allCases, id: \.self) { Text($0.rawValue.capitalized).tag($0) }
+                }
+                Stepper("Max colours: \(settings.maxColors)", value: $settings.maxColors, in: 2...256, step: 2)
+                Toggle("RLE compress", isOn: $settings.compress)
+                Stepper(settings.posterizeLevels < 2 ? "Posterize: off"
+                        : "Posterize: \(settings.posterizeLevels) levels",
+                        value: $settings.posterizeLevels, in: 0...32)
+            }
+
+            Section("Clicked-state glow") {
+                Toggle("Auto-generate glow", isOn: $settings.autoGlow)
+                Stepper("Glow radius: \(settings.glowRadius) px", value: $settings.glowRadius, in: 1...16)
+                ColorPicker("Glow colour", selection: glowColorBinding, supportsOpacity: false)
+            }
+
+            Section("Outline") {
+                Stepper("Thickness: \(settings.outlineThickness) px", value: $settings.outlineThickness, in: 0...16)
+                if settings.outlineThickness > 0 {
+                    ColorPicker("Outline colour", selection: hexColorBinding(\.outlineColorHex), supportsOpacity: false)
+                }
+            }
+
+            Section("Orientation & adjust") {
+                HStack {
+                    Toggle("Flip H", isOn: $settings.flipH).toggleStyle(.button)
+                    Toggle("Flip V", isOn: $settings.flipV).toggleStyle(.button)
+                    Button { settings.rotateQuarters = (settings.rotateQuarters + 1) % 4 } label: {
+                        Label("\(settings.rotateQuarters * 90)°", systemImage: "rotate.right")
                     }
-                    Stepper("Max colours: \(settings.maxColors)", value: $settings.maxColors, in: 2...256, step: 2)
-                    Toggle("RLE compress", isOn: $settings.compress)
-                    Stepper(settings.posterizeLevels < 2 ? "Posterize: off"
-                            : "Posterize: \(settings.posterizeLevels) levels",
-                            value: $settings.posterizeLevels, in: 0...32)
                 }
-
-                Group {
-                    Text("Clicked-state glow").font(.caption.weight(.semibold))
-                    Toggle("Auto-generate glow", isOn: $settings.autoGlow)
-                    Stepper("Glow radius: \(settings.glowRadius)px", value: $settings.glowRadius, in: 1...16)
-                    ColorPicker("Glow colour", selection: glowColorBinding, supportsOpacity: false)
-                }
-
-                Group {
-                    Text("Outline").font(.caption.weight(.semibold))
-                    Stepper("Thickness: \(settings.outlineThickness)px", value: $settings.outlineThickness, in: 0...16)
-                    if settings.outlineThickness > 0 {
-                        ColorPicker("Outline colour", selection: hexColorBinding(\.outlineColorHex),
-                                    supportsOpacity: false)
-                    }
-                }
-
-                Group {
-                    Text("Orientation").font(.caption.weight(.semibold))
+                Stepper("Blur: \(settings.blurRadius) px", value: $settings.blurRadius, in: 0...12)
+                LabeledContent("Tint") {
                     HStack {
-                        Toggle("Flip H", isOn: $settings.flipH).toggleStyle(.button)
-                        Toggle("Flip V", isOn: $settings.flipV).toggleStyle(.button)
-                        Button { settings.rotateQuarters = (settings.rotateQuarters + 1) % 4 } label: {
-                            Label("\(settings.rotateQuarters * 90)°", systemImage: "rotate.right")
-                        }
-                    }
-                    Stepper("Blur: \(settings.blurRadius)px", value: $settings.blurRadius, in: 0...12)
-                    HStack {
-                        Text("Tint").font(.caption)
-                        ColorPicker("", selection: hexColorBinding(\.tintColorHex), supportsOpacity: false)
-                            .labelsHidden()
+                        ColorPicker("", selection: hexColorBinding(\.tintColorHex), supportsOpacity: false).labelsHidden()
                         Slider(value: $settings.tintAmount, in: 0...1)
                     }
                 }
+            }
 
-                Group {
-                    Text("Shadows").font(.caption.weight(.semibold))
-                    ShadowsEditor(shadows: $settings.shadows)
+            Section("Shadows") { ShadowsEditor(shadows: $settings.shadows) }
+
+            Section("Planar (OS1–3 fallback)") {
+                Stepper("Width: \(settings.planarWidth) px", value: $settings.planarWidth, in: 8...256)
+                Stepper("Height: \(settings.planarHeight) px", value: $settings.planarHeight, in: 8...256)
+                Stepper("Margin: \(settings.planarMargin) px", value: $settings.planarMargin, in: 0...64)
+                PaletteEditor(palette: $settings.palette)
+                Toggle("Dither (Floyd–Steinberg)", isOn: Binding(
+                    get: { settings.planarDither == .floydSteinberg },
+                    set: { settings.planarDither = $0 ? .floydSteinberg : .none }))
+            }
+
+            Section("Scaling") {
+                Picker("Resample", selection: $settings.resample) {
+                    Text("Smooth (photos)").tag(ResampleFilter.smooth)
+                    Text("Nearest (pixel art)").tag(ResampleFilter.nearest)
                 }
+            }
 
-                Group {
-                    Text("Planar (OS1–3 fallback)").font(.caption.weight(.semibold))
-                    Stepper("Width: \(settings.planarWidth)px", value: $settings.planarWidth, in: 8...256)
-                    Stepper("Height: \(settings.planarHeight)px", value: $settings.planarHeight, in: 8...256)
-                    Stepper("Margin: \(settings.planarMargin)px", value: $settings.planarMargin, in: 0...64)
-                    PaletteEditor(palette: $settings.palette)
-                    Toggle("Dither (Floyd–Steinberg)", isOn: Binding(
-                        get: { settings.planarDither == .floydSteinberg },
-                        set: { settings.planarDither = $0 ? .floydSteinberg : .none }))
-                }
-
-                Group {
-                    Text("Scaling").font(.caption.weight(.semibold))
-                    Picker("Resample", selection: $settings.resample) {
-                        Text("Smooth (photos)").tag(ResampleFilter.smooth)
-                        Text("Nearest (pixel art)").tag(ResampleFilter.nearest)
-                    }
-                }
-
-                Group {
-                    Text("Metadata").font(.caption.weight(.semibold))
-                    TextField("Default tool", text: $settings.defaultTool)
-                        .textFieldStyle(.roundedBorder)
-                    ToolTypesEditor(toolTypes: $settings.toolTypes)
-                }
-
+            Section("Metadata") {
+                TextField("Default tool", text: $settings.defaultTool)
+                ToolTypesEditor(toolTypes: $settings.toolTypes)
                 Toggle("NewIcons (experimental)", isOn: $settings.writeNewIcons)
             }
-            .padding(.top, 6)
         }
-        .font(.callout)
     }
 
     private var glowColorBinding: Binding<Color> {

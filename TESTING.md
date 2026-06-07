@@ -40,6 +40,11 @@ tests (`swift test`); this list is everything else. Grown as features land.
 - [ ] Per-effect **target** (Both/Unclicked/Clicked) applies to the right state.
 - [ ] "Show original (bypass filters)" toggle = before/after.
 
+## UI / HIG (macOS 26 + Liquid Glass)
+- [ ] Inspector reads well as a grouped Form (spacing/padding, section headers).
+- [ ] Built with Xcode 26: toolbar/sidebar/forms show Liquid Glass; nothing opaque fights it.
+- [ ] Controls are standard sizes; no cramped or misaligned rows.
+
 ## Output settings
 - [ ] Icon size: set explicit width/height + margin for GlowIcon and planar; non-square works.
 - [ ] Fit mode: fit (letterbox) / fill (crop) / stretch behave correctly.

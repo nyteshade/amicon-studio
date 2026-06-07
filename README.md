@@ -10,6 +10,21 @@ clicked (selected) state.
 > builds and runs on macOS. **NewIcons** support is **experimental** — see the
 > caveat below.
 
+## Quick start (macOS)
+
+```bash
+git clone <repo> && cd amicon-studio
+./build.sh run        # build & launch the app
+./build.sh test       # run the AmigaIconKit unit tests
+./build.sh xcode      # open in Xcode → pick the “AmigaIconWriterApp” scheme, run on “My Mac”
+./build.sh cli --help # the amigaicon command-line tool
+```
+
+Needs a Swift toolchain (Xcode 15+). **Xcode 26** (macOS 26 SDK) is recommended:
+the app uses standard SwiftUI containers (grouped `Form`, standard toolbar), so
+it adopts the **Liquid Glass** look automatically when built with Xcode 26 — no
+extra flags. The unit tests also run on Linux (`swift test`).
+
 ---
 
 ## What it writes
