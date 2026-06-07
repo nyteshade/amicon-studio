@@ -28,13 +28,14 @@ struct Layer: Codable, Equatable, Identifiable {
 struct RenderSettings: Codable, Equatable {
     var iconType: Int = Int(IconType.project.rawValue)
 
-    // ColorIcon / GlowIcon (OS3.5+)
+    // ColorIcon / GlowIcon (OS3.5+) — explicit canvas size (px), up to 256
     var writeColorIcon = true
-    var colorCanvas = 54
-    var colorContent = 48
+    var colorWidth = 54
+    var colorHeight = 54
+    var colorMargin = 3
     var maxColors = 256
     var compress = true
-    var preserveAspect = false // non-square canvas hugging the artwork
+    var fitMode: FitMode = .fit
 
     // Clicked-state glow
     var autoGlow = true
@@ -60,8 +61,9 @@ struct RenderSettings: Codable, Equatable {
     var tintAmount = 0.0
 
     // Classic planar (OS1–3): smaller, as was typical
-    var planarCanvas = 40
-    var planarContent = 36
+    var planarWidth = 40
+    var planarHeight = 40
+    var planarMargin = 2
     /// The Workbench pen set used for the planar fallback — a named preset or an
     /// edited custom palette (its exact pen RGBs are stored with the project).
     var palette: WorkbenchPalette = .workbench2_4
@@ -82,11 +84,12 @@ struct RenderSettings: Codable, Equatable {
         var o = IconOptions()
         o.type = IconType(rawValue: UInt8(iconType)) ?? .project
         o.writeColorIcon = writeColorIcon
-        o.colorCanvasSize = colorCanvas
-        o.colorContentSize = colorContent
+        o.colorWidth = colorWidth
+        o.colorHeight = colorHeight
+        o.colorMargin = colorMargin
         o.colorMaxColors = maxColors
         o.compressColorIcon = compress
-        o.preserveAspectRatio = preserveAspect
+        o.fitMode = fitMode
         o.autoGlow = autoGlow
         o.glowRadius = glowRadius
         if let c = RGB(hex: glowColorHex) { o.glowColor = c }
@@ -100,8 +103,9 @@ struct RenderSettings: Codable, Equatable {
         o.blurRadius = blurRadius
         if let c = RGB(hex: tintColorHex) { o.tintColor = c }
         o.tintAmount = tintAmount
-        o.planarCanvasSize = planarCanvas
-        o.planarContentSize = planarContent
+        o.planarWidth = planarWidth
+        o.planarHeight = planarHeight
+        o.planarMargin = planarMargin
         o.planarPalette = palette
         o.resampleFilter = resample
         o.planarDither = planarDither

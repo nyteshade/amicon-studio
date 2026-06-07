@@ -102,7 +102,8 @@ final class IconDecoderTests: XCTestCase {
         let bytes = try IconWriter.build(normal: img, selected: nil, options: opts)
         let decoded = try IconDecoder.decode(bytes)
 
-        let composed = img.centered(inCanvas: opts.colorCanvasSize, contentSize: opts.colorContentSize)
+        let composed = img.fitted(width: opts.colorWidth, height: opts.colorHeight,
+                                  margin: opts.colorMargin, mode: opts.fitMode, filter: opts.resampleFilter)
         let expected = ColorQuantizer.quantize(composed, maxColors: opts.colorMaxColors)
 
         XCTAssertEqual(decoded.colorIconNormal, expected)

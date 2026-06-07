@@ -63,10 +63,12 @@ size (`--resample smooth|nearest`), and the planar reduction uses
 **Floyd–Steinberg dithering** so photos read well at 4–16 pens
 (`--dither fs|none`). Pixel-art sources usually want `nearest` + `none`.
 
-By default the canvas is square; pass `--preserve-aspect` (or toggle it in
-*Output Settings*) to emit a **non-square** canvas that hugs the artwork's
-aspect ratio — as many classic icons do — keeping a uniform glow margin on all
-sides.
+Icon size is fully configurable (the Amiga has no fixed size): set an explicit
+**width × height** and a **margin** (transparent room for glow/outline/shadow)
+for both the GlowIcon and the planar image, plus a **fit mode** for how the art
+fills the canvas — `fit` (letterbox), `fill` (crop) or `stretch`. CLI:
+`--color-size 80x40 --color-margin 4 --fit fit` (and `--planar-size`/
+`--planar-margin`); GlowIcon canvases go up to 256×256 (the format's limit).
 
 > ⚠️ The exact RGB values for the WB 1.x / 2.x pens and the OS 3.2 system pens
 > are the conventional/MagicWB-compatible ones; tweak them in
@@ -199,7 +201,7 @@ sandboxing, and a distributable bundle):
 - **Leading sidebar** — *tools*: a palette of CoreImage effects (brightness,
   contrast, saturation, hue, sepia, monochrome, invert, bloom, sharpen,
   vignette) you can stack onto the artwork, plus *Output Settings* (icon type,
-  GlowIcon canvas/artwork sizes, max colours, glow colour & radius, a solid
+  GlowIcon width/height/margin + fit mode, max colours, glow colour & radius, a solid
   **outline**, planar size & palette, dithering & scaling, and the **default
   tool / tool types**).
 - Effects are applied **non-destructively**: the project keeps the **original

@@ -41,6 +41,8 @@ tests (`swift test`); this list is everything else. Grown as features land.
 - [ ] "Show original (bypass filters)" toggle = before/after.
 
 ## Output settings
+- [ ] Icon size: set explicit width/height + margin for GlowIcon and planar; non-square works.
+- [ ] Fit mode: fit (letterbox) / fill (crop) / stretch behave correctly.
 - [ ] Palette editor: edit pen RGBs, add/remove pens, total colours; preset picker.
 - [ ] Shadows: add/remove, kind (outer/inner), X/Y, colour, opacity, blur.
 - [ ] Outline (thickness/colour), orientation (flip/rotate), blur, tint, posterize

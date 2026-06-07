@@ -285,11 +285,14 @@ struct OutputSettingsView: View {
                 Group {
                     Text("GlowIcon (OS3.5+, 24-bit)").font(.caption.weight(.semibold))
                     Toggle("Write ColorIcon", isOn: $settings.writeColorIcon)
-                    Stepper("Canvas: \(settings.colorCanvas)px", value: $settings.colorCanvas, in: 8...256)
-                    Stepper("Artwork: \(settings.colorContent)px", value: $settings.colorContent, in: 8...256)
+                    Stepper("Width: \(settings.colorWidth)px", value: $settings.colorWidth, in: 8...256)
+                    Stepper("Height: \(settings.colorHeight)px", value: $settings.colorHeight, in: 8...256)
+                    Stepper("Margin: \(settings.colorMargin)px", value: $settings.colorMargin, in: 0...64)
+                    Picker("Fit", selection: $settings.fitMode) {
+                        ForEach(FitMode.allCases, id: \.self) { Text($0.rawValue.capitalized).tag($0) }
+                    }
                     Stepper("Max colours: \(settings.maxColors)", value: $settings.maxColors, in: 2...256, step: 2)
                     Toggle("RLE compress", isOn: $settings.compress)
-                    Toggle("Preserve aspect (non-square)", isOn: $settings.preserveAspect)
                     Stepper(settings.posterizeLevels < 2 ? "Posterize: off"
                             : "Posterize: \(settings.posterizeLevels) levels",
                             value: $settings.posterizeLevels, in: 0...32)
@@ -336,8 +339,9 @@ struct OutputSettingsView: View {
 
                 Group {
                     Text("Planar (OS1–3 fallback)").font(.caption.weight(.semibold))
-                    Stepper("Canvas: \(settings.planarCanvas)px", value: $settings.planarCanvas, in: 8...256)
-                    Stepper("Artwork: \(settings.planarContent)px", value: $settings.planarContent, in: 8...256)
+                    Stepper("Width: \(settings.planarWidth)px", value: $settings.planarWidth, in: 8...256)
+                    Stepper("Height: \(settings.planarHeight)px", value: $settings.planarHeight, in: 8...256)
+                    Stepper("Margin: \(settings.planarMargin)px", value: $settings.planarMargin, in: 0...64)
                     PaletteEditor(palette: $settings.palette)
                     Toggle("Dither (Floyd–Steinberg)", isOn: Binding(
                         get: { settings.planarDither == .floydSteinberg },
@@ -542,7 +546,7 @@ struct PlanarFallbackPreview: View {
     let settings: RenderSettings
 
     private var caption: String {
-        "\(settings.planarCanvas)×\(settings.planarCanvas) · \(settings.palette.name)"
+        "\(settings.planarWidth)×\(settings.planarHeight) · \(settings.palette.name)"
     }
 
     var body: some View {

@@ -21,21 +21,24 @@ public struct IconOptions {
     /// what makes the icon look right. The leading system pens are reserved; any
     /// pens above them are generated from the artwork during colour reduction.
     public var planarPalette: WorkbenchPalette = .workbench2_4
-    /// Artwork is fit within this, centred in `planarCanvasSize`.
-    public var planarContentSize: Int = 36
-    /// On-disk planar image dimension. Small, as was typical pre-GlowIcons.
-    public var planarCanvasSize: Int = 40
+    /// On-disk planar image size (px). The Amiga has no fixed icon size; pick any
+    /// width/height. `planarMargin` reserves room on every side for glow/outline/
+    /// shadow.
+    public var planarWidth: Int = 40
+    public var planarHeight: Int = 40
+    public var planarMargin: Int = 2
 
     // --- ColorIcon / GlowIcon (OS3.5+, 24-bit) ---
     public var writeColorIcon: Bool = true
-    public var colorContentSize: Int = 48
-    public var colorCanvasSize: Int = 54
+    /// GlowIcon canvas size (px), up to 256×256 (the format's limit). Non-square
+    /// is fine. `colorMargin` reserves room for glow/outline/shadow.
+    public var colorWidth: Int = 54
+    public var colorHeight: Int = 54
+    public var colorMargin: Int = 3
     public var colorMaxColors: Int = 256
     public var compressColorIcon: Bool = true
-    /// Produce a **non-square** canvas that hugs the artwork's aspect ratio
-    /// (like many classic icons) instead of forcing a square canvas. The chosen
-    /// canvas/content sizes act as the maximum (longer) dimension. Off by default.
-    public var preserveAspectRatio: Bool = false
+    /// How artwork is scaled into the canvas content box (fit/fill/stretch).
+    public var fitMode: FitMode = .fit
 
     // --- Selected ("clicked") state glow ---
     /// When no explicit selected image is supplied, derive the clicked state by
@@ -127,8 +130,8 @@ public enum IconWriter {
         // explicitly (classic icons usually rely on colour-complement highlight).
         var planarSelectedImg: PlanarImage?
         if let sel = selected {
-            let rgba = composed(sel, maxCanvas: options.planarCanvasSize,
-                                maxContent: options.planarContentSize, options: options)
+            let rgba = composed(sel, width: options.planarWidth, height: options.planarHeight,
+                                margin: options.planarMargin, options: options)
             let mapped = ColorQuantizer.mapReserving(rgba, reserved: wb.systemPens,
                                                       totalColors: wb.totalColors,
                                                       dither: options.planarDither)
@@ -138,17 +141,17 @@ public enum IconWriter {
         // ---- ColorIcon / GlowIcon --------------------------------------
         var colorIcon: ColorIcon?
         if options.writeColorIcon {
-            let normRGBA = composed(normal, maxCanvas: options.colorCanvasSize,
-                                    maxContent: options.colorContentSize, options: options)
+            let normRGBA = composed(normal, width: options.colorWidth, height: options.colorHeight,
+                                    margin: options.colorMargin, options: options)
             let normIndexed = ColorQuantizer.quantize(normRGBA, maxColors: options.colorMaxColors)
 
             let selRGBA: RGBAImage?
             if let sel = selected {
-                selRGBA = composed(sel, maxCanvas: options.colorCanvasSize,
-                                   maxContent: options.colorContentSize, options: options)
+                selRGBA = composed(sel, width: options.colorWidth, height: options.colorHeight,
+                                   margin: options.colorMargin, options: options)
             } else if options.autoGlow {
                 // Glow may not exceed the margin, or it would be clipped.
-                let margin = (options.colorCanvasSize - options.colorContentSize) / 2
+                let margin = options.colorMargin
                 let radius = max(1, min(options.glowRadius, max(1, margin)))
                 selRGBA = normRGBA.addingGlow(radius: radius,
                                               color: (options.glowColor.r, options.glowColor.g, options.glowColor.b))
@@ -164,8 +167,8 @@ public enum IconWriter {
         var toolTypes = options.toolTypes
         if options.writeNewIcons {
             let normIndexed = ColorQuantizer.quantize(
-                composed(normal, maxCanvas: options.colorCanvasSize,
-                         maxContent: options.colorContentSize, options: options),
+                composed(normal, width: options.colorWidth, height: options.colorHeight,
+                         margin: options.colorMargin, options: options),
                 maxColors: 256)
             let newIconLines = NewIcons.encode(normal: normIndexed, selected: nil)
             toolTypes = newIconLines + toolTypes
@@ -185,14 +188,15 @@ public enum IconWriter {
     /// artwork reduced to) without re-deriving the pipeline.
     public static func planarIndexed(for normal: RGBAImage, options: IconOptions) -> IndexedImage {
         let wb = options.planarPalette
-        let rgba = composed(normal, maxCanvas: options.planarCanvasSize,
-                            maxContent: options.planarContentSize, options: options)
+        let rgba = composed(normal, width: options.planarWidth, height: options.planarHeight,
+                            margin: options.planarMargin, options: options)
         return ColorQuantizer.mapReserving(rgba, reserved: wb.systemPens, totalColors: wb.totalColors,
                                            dither: options.planarDither)
     }
 
-    /// Fits `src` into the icon canvas and applies the optional solid outline.
-    private static func composed(_ src: RGBAImage, maxCanvas: Int, maxContent: Int,
+    /// Orients, blurs/tints the source, fits it into a `width × height` canvas
+    /// (with `margin`), then applies posterize / outline / shadows at final size.
+    private static func composed(_ src: RGBAImage, width: Int, height: Int, margin: Int,
                                  options: IconOptions) -> RGBAImage {
         var source = (options.flipHorizontal || options.flipVertical || options.rotateQuarters % 4 != 0)
             ? src.oriented(flipH: options.flipHorizontal, flipV: options.flipVertical,
@@ -200,17 +204,16 @@ public enum IconWriter {
             : src
         if options.blurRadius > 0 { source = source.boxBlurred(radius: options.blurRadius) }
         if options.tintAmount > 0 { source = source.tinted(color: options.tintColor, amount: options.tintAmount) }
-        var img = source.fitted(maxCanvas: maxCanvas, maxContent: maxContent,
-                                preserveAspect: options.preserveAspectRatio, filter: options.resampleFilter)
+        var img = source.fitted(width: width, height: height, margin: margin,
+                                mode: options.fitMode, filter: options.resampleFilter)
         if options.posterizeLevels >= 2 { img = img.posterized(levels: options.posterizeLevels) }
-        let margin = max(1, (maxCanvas - maxContent) / 2)
+        let room = max(1, margin) // breathing room for stroke/shadow at the edge
         if options.outlineThickness > 0 {
-            // Clamp to the available margin so the stroke isn't clipped at the edge.
             img = img.outlined(color: (options.outlineColor.r, options.outlineColor.g, options.outlineColor.b),
-                               thickness: min(options.outlineThickness, margin))
+                               thickness: min(options.outlineThickness, room))
         }
         if !options.shadows.isEmpty {
-            img = applyShadows(options.shadows, to: img, margin: margin)
+            img = applyShadows(options.shadows, to: img, margin: room)
         }
         return img
     }

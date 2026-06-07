@@ -53,8 +53,8 @@ ICON:
   --tooltype <s>         Add a tool type (repeatable)
 
 PLANAR (OS1–3 fallback, always written):
-  --planar-canvas <n>    On-disk planar size (default 40)
-  --planar-content <n>   Artwork fit size within the canvas (default 36)
+  --planar-size <WxH>    On-disk planar size, e.g. 40x40 (default 40x40)
+  --planar-margin <n>    Transparent margin per side (default 2)
   --palette <p>          Workbench pen set for colour reduction:
                            wb1     Workbench 1.x (4)
                            wb2     Workbench 2.x / 3.1 (4)   [default]
@@ -65,11 +65,11 @@ PLANAR (OS1–3 fallback, always written):
 
 COLORICON / GLOWICON (OS3.5+, 24-bit):
   --no-color             Don't write the ColorIcon block
-  --color-canvas <n>     Canvas size (default 54)
-  --color-content <n>    Artwork fit size (default 48)
+  --color-size <WxH>     Canvas size up to 256x256, e.g. 80x40 (default 54x54)
+  --color-margin <n>     Transparent margin per side (default 3)
+  --fit <m>              Scale art into the canvas: fit | fill | stretch (default fit)
   --max-colors <n>       Palette cap, 2–256 (default 256)
   --no-compress          Store image/palette uncompressed (RLE is default)
-  --preserve-aspect      Non-square canvas hugging the artwork's aspect ratio
   --posterize <n>        Quantize art to n levels/channel before reduction (off <2)
   --flip-h / --flip-v    Flip the artwork horizontally / vertically
   --rotate <deg>         Rotate clockwise: 90 | 180 | 270
@@ -126,17 +126,21 @@ while !args.isEmpty {
         options.type = t
     case "--default-tool": options.defaultTool = nextValue(arg)
     case "--tooltype": options.toolTypes.append(nextValue(arg))
-    case "--planar-canvas": options.planarCanvasSize = Int(nextValue(arg)) ?? options.planarCanvasSize
-    case "--planar-content": options.planarContentSize = Int(nextValue(arg)) ?? options.planarContentSize
+    case "--planar-size":
+        if let s = parseSize(nextValue(arg)) { options.planarWidth = s.w; options.planarHeight = s.h }
+    case "--planar-margin": options.planarMargin = max(0, Int(nextValue(arg)) ?? options.planarMargin)
     case "--palette":
         guard let wb = parsePalette(nextValue(arg)) else { fail("unknown --palette") }
         options.planarPalette = wb
     case "--no-color": options.writeColorIcon = false
-    case "--color-canvas": options.colorCanvasSize = Int(nextValue(arg)) ?? options.colorCanvasSize
-    case "--color-content": options.colorContentSize = Int(nextValue(arg)) ?? options.colorContentSize
+    case "--color-size":
+        if let s = parseSize(nextValue(arg)) { options.colorWidth = s.w; options.colorHeight = s.h }
+    case "--color-margin": options.colorMargin = max(0, Int(nextValue(arg)) ?? options.colorMargin)
+    case "--fit":
+        switch nextValue(arg).lowercased() { case "fill": options.fitMode = .fill
+        case "stretch": options.fitMode = .stretch; default: options.fitMode = .fit }
     case "--max-colors": options.colorMaxColors = max(2, min(256, Int(nextValue(arg)) ?? 256))
     case "--no-compress": options.compressColorIcon = false
-    case "--preserve-aspect": options.preserveAspectRatio = true
     case "--posterize": options.posterizeLevels = Int(nextValue(arg)) ?? 0
     case "--flip-h": options.flipHorizontal = true
     case "--flip-v": options.flipVertical = true
@@ -226,6 +230,13 @@ func parsePalette(_ s: String) -> WorkbenchPalette? {
     case "mwb16", "magicwb16":             return .magicWB_16
     default:                                return nil
     }
+}
+
+func parseSize(_ s: String) -> (w: Int, h: Int)? {
+    let parts = s.lowercased().split(separator: "x")
+    if parts.count == 2, let w = Int(parts[0]), let h = Int(parts[1]), w > 0, h > 0 { return (w, h) }
+    if parts.count == 1, let n = Int(parts[0]), n > 0 { return (n, n) } // square shorthand
+    return nil
 }
 
 func parseHexColor(_ s: String) -> RGB? {

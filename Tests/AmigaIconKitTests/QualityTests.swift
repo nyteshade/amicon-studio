@@ -184,7 +184,8 @@ final class QualityTests: XCTestCase {
         var o = IconOptions()
         o.type = .drawer
         o.drawerData = DrawerInfo()
-        o.preserveAspectRatio = true
+        o.colorWidth = 64; o.colorHeight = 40 // non-square
+        o.fitMode = .fit
         o.flipHorizontal = true
         o.rotateQuarters = 1
         o.blurRadius = 1
@@ -290,29 +291,33 @@ final class QualityTests: XCTestCase {
         XCTAssertTrue(pal.contains { $0.b > 180 && $0.r < 70 && $0.g < 70 }) // inner blue present
     }
 
-    // MARK: - Non-square canvas (preserve aspect)
+    // MARK: - Canvas size & fit mode
 
-    /// A wide source with `preserveAspectRatio` yields a non-square canvas that
-    /// hugs the artwork; both the GlowIcon and planar images are wider than tall.
-    func testPreserveAspectProducesNonSquareCanvas() throws {
-        var img = RGBAImage(width: 64, height: 16) // 4:1
-        for y in 0..<16 { for x in 0..<64 { img.setPixel(x, y, 200, 100, 50, 255) } }
-        var opts = IconOptions()
-        opts.preserveAspectRatio = true
-        let decoded = try IconDecoder.decode(try IconWriter.build(normal: img, selected: nil, options: opts))
-        let c = decoded.colorIconNormal!
-        XCTAssertGreaterThan(c.width, c.height)
-        XCTAssertGreaterThan(decoded.planarNormal.width, decoded.planarNormal.height)
-        XCTAssertNotNil(decoded.colorIconSelected) // glow still generated on the rectangle
-    }
-
-    /// Without the option, the canvas stays square regardless of source aspect.
-    func testSquareCanvasByDefault() throws {
+    /// Explicit non-square canvas dimensions are honoured end-to-end.
+    func testExplicitCanvasSize() throws {
         var img = RGBAImage(width: 64, height: 16)
         for y in 0..<16 { for x in 0..<64 { img.setPixel(x, y, 200, 100, 50, 255) } }
-        let decoded = try IconDecoder.decode(try IconWriter.build(normal: img, selected: nil, options: IconOptions()))
-        let c = decoded.colorIconNormal!
-        XCTAssertEqual(c.width, c.height)
+        var opts = IconOptions()
+        opts.colorWidth = 80; opts.colorHeight = 40
+        opts.planarWidth = 64; opts.planarHeight = 32
+        let decoded = try IconDecoder.decode(try IconWriter.build(normal: img, selected: nil, options: opts))
+        XCTAssertEqual(decoded.colorIconNormal?.width, 80)
+        XCTAssertEqual(decoded.colorIconNormal?.height, 40)
+        XCTAssertEqual(decoded.planarNormal.width, 64)
+        XCTAssertEqual(decoded.planarNormal.height, 32)
+    }
+
+    /// Fit modes: all produce the exact canvas size; `.fit` letterboxes a wide
+    /// image (transparent top edge), `.stretch` fills the corners.
+    func testFitModes() {
+        var img = RGBAImage(width: 40, height: 10) // 4:1
+        for y in 0..<10 { for x in 0..<40 { img.setPixel(x, y, 10, 200, 30, 255) } }
+        for mode in [FitMode.fit, .fill, .stretch] {
+            let out = img.fitted(width: 40, height: 40, margin: 0, mode: mode, filter: .nearest)
+            XCTAssertEqual(out.width, 40); XCTAssertEqual(out.height, 40)
+        }
+        XCTAssertEqual(img.fitted(width: 40, height: 40, margin: 0, mode: .fit, filter: .nearest).pixel(20, 0).a, 0)
+        XCTAssertEqual(img.fitted(width: 40, height: 40, margin: 0, mode: .stretch, filter: .nearest).pixel(0, 0).a, 255)
     }
 
     /// End-to-end: a dithered planar build still round-trips through the decoder.
