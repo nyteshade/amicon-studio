@@ -38,6 +38,7 @@ struct SymbolPicker: View {
                 Spacer()
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
             }
+            .glassButtons()
             ScrollView {
                 LazyVGrid(columns: columns, spacing: 8) {
                     ForEach(matches, id: \.self) { name in

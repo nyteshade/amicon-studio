@@ -44,6 +44,10 @@ tests (`swift test`); this list is everything else. Grown as features land.
 - [ ] Inspector reads well as a grouped Form (spacing/padding, section headers).
 - [ ] Built with Xcode 26: toolbar/sidebar/forms show Liquid Glass; nothing opaque fights it.
 - [ ] Controls are standard sizes; no cramped or misaligned rows.
+- [ ] Explicit glass accents (Xcode 26): the layer-canvas control bar floats as a
+      Liquid Glass bar; its buttons (and the Symbol picker's) use `.buttonStyle(.glass)`.
+- [ ] Built with Xcode 15 (older SDK): the same views fall back to standard
+      materials/buttons and look correct — the glass code is fully inert.
 
 ## Output settings
 - [ ] Icon size: set explicit width/height + margin for GlowIcon and planar; non-square works.

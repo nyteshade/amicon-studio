@@ -48,3 +48,29 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild -scheme AmigaIconWriterApp -destination 'platform=macOS' build | tail -50
+
+  # Xcode 26 / Swift 6.2 lane: the only place the explicit Liquid Glass code
+  # (`.buttonStyle(.glass)`, `.glassEffect()`, gated behind `#if compiler(>=6.2)`
+  # + `if #available(macOS 26, *)`) actually compiles. The macos-14 lane above
+  # excludes it; this one proves it builds under the new SDK. Allowed to fail
+  # until the runner image reliably ships Xcode 26, so it never blocks the rest.
+  macos26:
+    name: macOS (Xcode 26 / Liquid Glass)
+    runs-on: macos-15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 26
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Versions
+        run: |
+          swift --version
+          xcodebuild -version
+      - name: Build (all targets)
+        run: swift build
+      - name: Xcode build (app scheme, macOS)
+        run: |
+          set -o pipefail
+          xcodebuild -scheme AmigaIconWriterApp -destination 'platform=macOS' build | tail -50

@@ -140,6 +140,8 @@ struct LayerCanvas: View {
             Text("\(item.layers.count) layer\(item.layers.count == 1 ? "" : "s")")
                 .font(.caption).foregroundStyle(.secondary)
         }
+        .glassButtons()
+        .glassBar()
         .frame(width: size)
         .sheet(isPresented: $pickingSymbol) {
             SymbolPicker { data, name in
